@@ -9,115 +9,120 @@ export const useGeolocation = (options = { enableHighAccuracy: true, timeout: 10
     const [error, setError] = useState(null);
     const [permissionStatus, setPermissionStatus] = useState('pending');
     const [watchId, setWatchId] = useState(null);
+    const [isBridgeReady, setIsBridgeReady] = useState(false);
 
-    // Median UI Bridge Helper
     const isMedian = typeof window !== 'undefined' && (window.median || window.Median);
 
-    const startTracking = useCallback(async () => {
-        // 1. Handle Native Permissions via Median Bridge if available
-        if (isMedian) {
+    /**
+     * core: requestLocationSafely
+     * Optimized for Median native wrapper to avoid 'Access Denied' web errors.
+     */
+    const requestLocationSafely = useCallback(async () => {
+        const bridge = window.median || window.Median;
+
+        if (bridge) {
             try {
-                const bridge = window.median || window.Median;
-                // Request 'fine' location permission from the native OS
-                const result = await bridge.permissions.location({
+                // 1. Check current native permission status
+                const statusResult = await bridge.permissions.location({ request: false });
+
+                if (statusResult.status === 'granted') {
+                    setPermissionStatus('granted');
+                    startTracking();
+                    return true;
+                }
+
+                // 2. Request native authority if not already granted
+                const requestResult = await bridge.permissions.location({
                     request: true,
                     status: 'fine'
                 });
 
-                if (result.status !== 'granted') {
+                if (requestResult.status === 'granted') {
+                    setPermissionStatus('granted');
+                    startTracking();
+                    return true;
+                } else {
                     setPermissionStatus('denied');
                     setError('NATIVE_PERMISSION_DENIED');
-                    return;
+                    return false;
                 }
             } catch (err) {
                 console.error('Median Bridge Error:', err);
+                return fallbackToWeb();
             }
+        } else {
+            return fallbackToWeb();
         }
+    }, [options, watchId]);
 
-        // 2. Standard Web Geolocation Logic
+    const fallbackToWeb = async () => {
+        startTracking();
+        return true;
+    };
+
+    const startTracking = useCallback(() => {
         if (!navigator.geolocation) {
             setError('GPS_NOT_SUPPORTED');
             return;
         }
 
-        const handleSuccess = (pos) => {
-            setPosition({
-                lat: pos.coords.latitude,
-                lng: pos.coords.longitude,
-                accuracy: pos.coords.accuracy,
-                timestamp: pos.timestamp
-            });
-            setError(null);
-            setPermissionStatus('granted');
-        };
-
-        const handleError = (err) => {
-            switch (err.code) {
-                case err.PERMISSION_DENIED:
-                    setError('PERMISSION_DENIED');
-                    setPermissionStatus('denied');
-                    break;
-                case err.POSITION_UNAVAILABLE:
-                    setError('POSITION_UNAVAILABLE');
-                    break;
-                case err.TIMEOUT:
-                    setError('TIMEOUT');
-                    break;
-                default:
-                    setError('UNKNOWN_ERROR');
-            }
-        };
-
-        // Clear existing watch if any
         if (watchId) navigator.geolocation.clearWatch(watchId);
 
-        const id = navigator.geolocation.watchPosition(handleSuccess, handleError, options);
+        const id = navigator.geolocation.watchPosition(
+            (pos) => {
+                setPosition({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy,
+                    timestamp: pos.timestamp
+                });
+                setError(null);
+                setPermissionStatus('granted');
+            },
+            (err) => {
+                setError(err.code === 1 ? 'PERMISSION_DENIED' : 'GPS_ERROR');
+                if (err.code === 1) setPermissionStatus('denied');
+            },
+            options
+        );
         setWatchId(id);
-    }, [options, watchId, isMedian]);
+    }, [options, watchId]);
 
     useEffect(() => {
-        // Handle Median initialization callback if provided by the wrapper
-        if (typeof window !== 'undefined') {
-            window.median_geolocation_ready = () => {
-                startTracking();
-            };
+        // Lifecycle Sync: Hook into Median library ready event
+        const handleLibraryReady = () => {
+            setIsBridgeReady(true);
+            // Auto-check on load to sync status
+            const bridge = window.median || window.Median;
+            bridge.permissions.location({ request: false }).then(res => {
+                setPermissionStatus(res.status);
+                if (res.status === 'granted') startTracking();
+            });
+        };
+
+        if (window.median || window.Median) {
+            handleLibraryReady();
+        } else {
+            window.addEventListener('median_library_ready', handleLibraryReady);
         }
 
-        // Initial permission check
-        if (isMedian) {
-            const bridge = window.median || window.Median;
-            bridge.permissions.location({ request: false }).then(result => {
-                setPermissionStatus(result.status);
-                if (result.status === 'granted') {
-                    startTracking();
-                }
-            });
-        } else if (navigator.permissions && navigator.permissions.query) {
-            navigator.permissions.query({ name: 'geolocation' }).then(result => {
-                setPermissionStatus(result.state);
-                if (result.state === 'granted') {
-                    startTracking();
-                }
-                result.onchange = () => {
-                    setPermissionStatus(result.state);
-                    if (result.state === 'granted') startTracking();
-                };
-            });
-        } else {
-            // Fallback for Safari/Older browsers
-            startTracking();
-        }
+        // iOS Optimization: Ready callback
+        window.median_geolocation_ready = () => {
+            requestLocationSafely();
+        };
 
         return () => {
+            window.removeEventListener('median_library_ready', handleLibraryReady);
             if (watchId) navigator.geolocation.clearWatch(watchId);
         };
-    }, []); // Run once on mount
+    }, []);
 
     return {
         position,
         error,
         permissionStatus,
-        requestPermission: startTracking,
-        isNativeApp: !!isMedian
+        requestPermission: requestLocationSafely,
+        isNativeApp: !!isMedian,
+        isBridgeReady
     };
 };

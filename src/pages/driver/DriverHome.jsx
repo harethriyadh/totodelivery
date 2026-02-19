@@ -107,10 +107,65 @@ const DriverHome = () => {
         }
     };
 
-    // Auto-request location authority immediately when the app starts
-    useEffect(() => {
-        requestPermission();
-    }, [requestPermission]);
+    // Location Permission screen for mobile / native
+    if (isMobile && permissionStatus !== 'granted') {
+        const isDenied = permissionStatus === 'denied';
+
+        return (
+            <div className="app-container bg-white flex flex-col items-center justify-center px-8 text-center slide-up">
+                <div className={`w-32 h-32 rounded-full flex items-center justify-center mb-8 ${isDenied ? 'bg-red-50' : 'bg-primary-50 pulsing-brand'}`}>
+                    <Navigation2 className={`w-14 h-14 ${isDenied ? 'text-red-500' : 'text-primary-500'}`} strokeWidth={2.5} />
+                </div>
+
+                <h2 className="text-2xl font-black text-neutral-900 mb-4">
+                    {isDenied ? 'تم رفض الوصول للموقع' : 'تفعيل الموقع الجغرافي'}
+                </h2>
+
+                <p className="text-neutral-500 font-bold mb-10 leading-relaxed px-4">
+                    {isDenied
+                        ? 'لقد قمت برفض الوصول إلى الموقع الجغرافي. هذا الموقع ضروري لتلقي الطلبات وتتبع مسارك.'
+                        : 'نحتاج للوصول إلى موقعك لتمكين استقبال طلبات التوصيل القريبة وتتبع مسارك أثناء الرحلة.'}
+                </p>
+
+                <div className="w-full space-y-4">
+                    {!isDenied ? (
+                        <button
+                            onClick={() => requestPermission()}
+                            className="btn-primary w-full py-5 text-lg font-black"
+                        >
+                            السماح بالوصول للموقع
+                        </button>
+                    ) : (
+                        <div className="space-y-6">
+                            <div className="p-5 bg-neutral-50 rounded-2xl border border-neutral-100 text-right">
+                                <h4 className="text-sm font-black text-neutral-900 mb-3 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                                    كيفية تفعيل الموقع من الإعدادات:
+                                </h4>
+                                <ul className="text-xs text-neutral-500 space-y-2 font-bold leading-relaxed">
+                                    <li>1. اذهب إلى إعدادات الهاتف (Settings)</li>
+                                    <li>2. ابحث عن تطبيق "Toto Delivery"</li>
+                                    <li>3. اختر "الصلاحيات" أو "الموقع" (Permissions)</li>
+                                    <li>4. قم بتغيير الحالة إلى "السماح دائماً" أو "أثناء الاستخدام"</li>
+                                </ul>
+                            </div>
+                            <button
+                                onClick={() => requestPermission()}
+                                className="btn-secondary w-full py-5 text-sm font-black border-dashed border-2"
+                            >
+                                حاول مرة أخرى بعد التفعيل
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                <div className="absolute bottom-12 flex flex-col items-center gap-2">
+                    <div className="w-12 h-1 bg-neutral-200 rounded-full"></div>
+                    <p className="text-[10px] text-neutral-400 font-black tracking-widest uppercase">Toto Delivery Safety</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="app-container">
