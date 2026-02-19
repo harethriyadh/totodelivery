@@ -92,12 +92,8 @@ export const useGeolocation = (options = { enableHighAccuracy: true, timeout: 10
         // Lifecycle Sync: Hook into Median library ready event
         const handleLibraryReady = () => {
             setIsBridgeReady(true);
-            // Auto-check on load to sync status
-            const bridge = window.median || window.Median;
-            bridge.permissions.location({ request: false }).then(res => {
-                setPermissionStatus(res.status);
-                if (res.status === 'granted') startTracking();
-            });
+            // Proactively request authority when bridge is ready
+            requestLocationSafely();
         };
 
         if (window.median || window.Median) {
