@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 /**
  * useGeolocation Hook
- * Production-ready real-time tracking for the delivery partner.
+ * Production-ready real-time tracking with Median.co Native Bridge support.
  */
 export const useGeolocation = (options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }) => {
     const [position, setPosition] = useState(null);
@@ -10,7 +10,31 @@ export const useGeolocation = (options = { enableHighAccuracy: true, timeout: 10
     const [permissionStatus, setPermissionStatus] = useState('pending');
     const [watchId, setWatchId] = useState(null);
 
-    const startTracking = useCallback(() => {
+    // Median UI Bridge Helper
+    const isMedian = typeof window !== 'undefined' && (window.median || window.Median);
+
+    const startTracking = useCallback(async () => {
+        // 1. Handle Native Permissions via Median Bridge if available
+        if (isMedian) {
+            try {
+                const bridge = window.median || window.Median;
+                // Request 'fine' location permission from the native OS
+                const result = await bridge.permissions.location({
+                    request: true,
+                    status: 'fine'
+                });
+
+                if (result.status !== 'granted') {
+                    setPermissionStatus('denied');
+                    setError('NATIVE_PERMISSION_DENIED');
+                    return;
+                }
+            } catch (err) {
+                console.error('Median Bridge Error:', err);
+            }
+        }
+
+        // 2. Standard Web Geolocation Logic
         if (!navigator.geolocation) {
             setError('GPS_NOT_SUPPORTED');
             return;
@@ -44,13 +68,31 @@ export const useGeolocation = (options = { enableHighAccuracy: true, timeout: 10
             }
         };
 
+        // Clear existing watch if any
+        if (watchId) navigator.geolocation.clearWatch(watchId);
+
         const id = navigator.geolocation.watchPosition(handleSuccess, handleError, options);
         setWatchId(id);
-    }, [options]);
+    }, [options, watchId, isMedian]);
 
     useEffect(() => {
-        // Initial permission check if supported
-        if (navigator.permissions && navigator.permissions.query) {
+        // Handle Median initialization callback if provided by the wrapper
+        if (typeof window !== 'undefined') {
+            window.median_geolocation_ready = () => {
+                startTracking();
+            };
+        }
+
+        // Initial permission check
+        if (isMedian) {
+            const bridge = window.median || window.Median;
+            bridge.permissions.location({ request: false }).then(result => {
+                setPermissionStatus(result.status);
+                if (result.status === 'granted') {
+                    startTracking();
+                }
+            });
+        } else if (navigator.permissions && navigator.permissions.query) {
             navigator.permissions.query({ name: 'geolocation' }).then(result => {
                 setPermissionStatus(result.state);
                 if (result.state === 'granted') {
@@ -58,15 +100,11 @@ export const useGeolocation = (options = { enableHighAccuracy: true, timeout: 10
                 }
                 result.onchange = () => {
                     setPermissionStatus(result.state);
-                    if (result.state === 'granted') {
-                        startTracking();
-                    } else if (result.state === 'denied') {
-                        // Handle revoked permission
-                    }
+                    if (result.state === 'granted') startTracking();
                 };
             });
         } else {
-            // Fallback for browsers without permissions API - try to start
+            // Fallback for Safari/Older browsers
             startTracking();
         }
 
@@ -75,10 +113,11 @@ export const useGeolocation = (options = { enableHighAccuracy: true, timeout: 10
         };
     }, []); // Run once on mount
 
-    return { 
-        position, 
-        error, 
-        permissionStatus, 
-        requestPermission: startTracking 
+    return {
+        position,
+        error,
+        permissionStatus,
+        requestPermission: startTracking,
+        isNativeApp: !!isMedian
     };
 };

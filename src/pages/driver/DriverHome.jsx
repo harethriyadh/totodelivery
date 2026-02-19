@@ -22,12 +22,12 @@ const DriverHome = () => {
     const [availableOrders, setAvailableOrders] = useState([]);
 
     // 1. Real-Time Geolocation
-    const { position, error: gpsError, permissionStatus, requestPermission } = useGeolocation();
+    const { position, error: gpsError, permissionStatus, requestPermission, isNativeApp } = useGeolocation();
 
     // Mobile Detection
     const isMobile = useMemo(() => {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    }, []);
+        return isNativeApp || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }, [isNativeApp]);
 
     // Current coordinates (lat, lng array)
     const currentCoords = useMemo(() => {
