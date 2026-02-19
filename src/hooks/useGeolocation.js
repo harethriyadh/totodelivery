@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 /**
  * useGeolocation Hook
@@ -8,18 +8,13 @@ export const useGeolocation = (options = { enableHighAccuracy: true, timeout: 10
     const [position, setPosition] = useState(null);
     const [error, setError] = useState(null);
     const [permissionStatus, setPermissionStatus] = useState('pending');
+    const [watchId, setWatchId] = useState(null);
 
-    useEffect(() => {
+    const startTracking = useCallback(() => {
         if (!navigator.geolocation) {
             setError('GPS_NOT_SUPPORTED');
             return;
         }
-
-        // Check permission initial state
-        navigator.permissions?.query({ name: 'geolocation' }).then(result => {
-            setPermissionStatus(result.state);
-            result.onchange = () => setPermissionStatus(result.state);
-        });
 
         const handleSuccess = (pos) => {
             setPosition({
@@ -29,12 +24,14 @@ export const useGeolocation = (options = { enableHighAccuracy: true, timeout: 10
                 timestamp: pos.timestamp
             });
             setError(null);
+            setPermissionStatus('granted');
         };
 
         const handleError = (err) => {
             switch (err.code) {
                 case err.PERMISSION_DENIED:
                     setError('PERMISSION_DENIED');
+                    setPermissionStatus('denied');
                     break;
                 case err.POSITION_UNAVAILABLE:
                     setError('POSITION_UNAVAILABLE');
@@ -47,10 +44,41 @@ export const useGeolocation = (options = { enableHighAccuracy: true, timeout: 10
             }
         };
 
-        const watchId = navigator.geolocation.watchPosition(handleSuccess, handleError, options);
+        const id = navigator.geolocation.watchPosition(handleSuccess, handleError, options);
+        setWatchId(id);
+    }, [options]);
 
-        return () => navigator.geolocation.clearWatch(watchId);
-    }, []);
+    useEffect(() => {
+        // Initial permission check if supported
+        if (navigator.permissions && navigator.permissions.query) {
+            navigator.permissions.query({ name: 'geolocation' }).then(result => {
+                setPermissionStatus(result.state);
+                if (result.state === 'granted') {
+                    startTracking();
+                }
+                result.onchange = () => {
+                    setPermissionStatus(result.state);
+                    if (result.state === 'granted') {
+                        startTracking();
+                    } else if (result.state === 'denied') {
+                        // Handle revoked permission
+                    }
+                };
+            });
+        } else {
+            // Fallback for browsers without permissions API - try to start
+            startTracking();
+        }
 
-    return { position, error, permissionStatus };
+        return () => {
+            if (watchId) navigator.geolocation.clearWatch(watchId);
+        };
+    }, []); // Run once on mount
+
+    return { 
+        position, 
+        error, 
+        permissionStatus, 
+        requestPermission: startTracking 
+    };
 };

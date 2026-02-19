@@ -22,7 +22,12 @@ const DriverHome = () => {
     const [availableOrders, setAvailableOrders] = useState([]);
 
     // 1. Real-Time Geolocation
-    const { position, error: gpsError, permissionStatus } = useGeolocation();
+    const { position, error: gpsError, permissionStatus, requestPermission } = useGeolocation();
+
+    // Mobile Detection
+    const isMobile = useMemo(() => {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }, []);
 
     // Current coordinates (lat, lng array)
     const currentCoords = useMemo(() => {
@@ -101,6 +106,50 @@ const DriverHome = () => {
             setAvailableOrders([]);
         }
     };
+
+    // Auto-request on desktop, wait for button on mobile
+    useEffect(() => {
+        if (!isMobile) {
+            requestPermission();
+        }
+    }, [isMobile, requestPermission]);
+
+    // Location Permission screen for mobile
+    if (isMobile && permissionStatus !== 'granted') {
+        return (
+            <div className="app-container bg-white flex flex-col items-center justify-center px-8 text-center">
+                <div className="w-32 h-32 bg-primary-50 rounded-full flex items-center justify-center mb-8 pulsing-brand">
+                    <Navigation2 className="w-14 h-14 text-primary-500" strokeWidth={2.5} />
+                </div>
+                <h2 className="text-2xl font-black text-neutral-900 mb-4">تفعيل الموقع الجغرافي</h2>
+                <p className="text-neutral-500 font-bold mb-10 leading-relaxed px-4">
+                    نحتاج للوصول إلى موقعك لتمكين استقبال طلبات التوصيل القريبة وتتبع مسارك أثناء الرحلة.
+                </p>
+
+                <div className="w-full space-y-4">
+                    <button
+                        onClick={() => requestPermission()}
+                        className="btn-primary w-full py-5 text-lg font-black"
+                    >
+                        السماح بالوصول للموقع
+                    </button>
+
+                    {permissionStatus === 'denied' && (
+                        <div className="p-4 bg-red-50 border border-red-100 rounded-2xl">
+                            <p className="text-xs text-red-600 font-bold">
+                                تم رفض الوصول. يرجى تفعيل الموقع من إعدادات المتصفح/الهاتف للمتابعة.
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="absolute bottom-12 flex flex-col items-center gap-2">
+                    <div className="w-12 h-1 bg-neutral-200 rounded-full"></div>
+                    <p className="text-[10px] text-neutral-400 font-black tracking-widest uppercase">Toto Delivery Safety</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="app-container">
