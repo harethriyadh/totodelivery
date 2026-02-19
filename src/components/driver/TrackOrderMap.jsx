@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Store, User, Navigation, AlertCircle, Signal, SignalHigh, SignalLow } from 'lucide-react';
@@ -98,9 +98,13 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
                 style={{ height: '100%', width: '100%' }}
                 zoomControl={false}
                 attributionControl={false}
+                scrollWheelZoom={true}
+                doubleClickZoom={true}
+                touchZoom={true}
             >
+                <ZoomControl position="bottomright" />
                 <TileLayer
-                    url="http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                    url="https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
                     subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
                     maxZoom={20}
                 />

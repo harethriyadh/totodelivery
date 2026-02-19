@@ -209,3 +209,42 @@ main.viewport-scroll {
 ::-webkit-scrollbar {
     width: 0px;
 }
+
+/* Map Control Customization */
+.leaflet-control-zoom {
+    border: none !important;
+    margin-bottom: 90px !important;
+    margin-right: 20px !important;
+    box-shadow: var(--shadow-card) !important;
+}
+
+.leaflet-control-zoom-in, 
+.leaflet-control-zoom-out {
+    background-color: white !important;
+    color: var(--neutral-800) !important;
+    border: 1px solid var(--neutral-100) !important;
+    width: 44px !important;
+    height: 44px !important;
+    line-height: 44px !important;
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    transition: all 0.2s !important;
+}
+
+.leaflet-control-zoom-in {
+    border-radius: 16px 16px 0 0 !important;
+}
+
+.leaflet-control-zoom-out {
+    border-radius: 0 0 16px 16px !important;
+}
+
+.leaflet-control-zoom-in:active,
+.leaflet-control-zoom-out:active {
+    background-color: var(--neutral-50) !important;
+    transform: scale(0.95);
+}
+
+.custom-map-marker {
+    transition: all 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+}
