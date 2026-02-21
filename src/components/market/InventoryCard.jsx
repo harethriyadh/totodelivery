@@ -31,7 +31,7 @@ const InventoryCard = ({ item, onToggle, onEdit, onDelete }) => {
                 <h3 className="font-black text-neutral-900 text-base mb-1 truncate">{item.name}</h3>
                 <div className="flex items-baseline gap-1 mb-3">
                     <span className="text-lg font-black text-neutral-900">{item.price}</span>
-                    <span className="text-[10px] text-neutral-400 font-bold uppercase">ر.س / {item.unit}</span>
+                    <span className="text-[10px] text-neutral-400 font-bold uppercase">د.ع / {item.unit}</span>
                 </div>
             </div>
 

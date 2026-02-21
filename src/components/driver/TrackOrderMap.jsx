@@ -20,6 +20,29 @@ function MapEffectsManager({ points, zoom = 16 }) {
     return null;
 }
 
+/**
+ * Functional Recenter Button
+ */
+function RecenterAction({ pos }) {
+    const map = useMap();
+    if (!pos) return null;
+
+    return (
+        <div className="leaflet-bottom leaflet-right !mb-6 !mr-6" style={{ pointerEvents: 'auto' }}>
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    map.flyTo(pos, 16, { duration: 1.5 });
+                }}
+                className="w-14 h-14 bg-white rounded-2xl shadow-2xl flex items-center justify-center text-primary-500 border border-neutral-100 transform active:scale-95 transition-all hover:bg-neutral-50"
+                title="إعادة التمركز"
+            >
+                <Navigation className="w-7 h-7 fill-current" />
+            </button>
+        </div>
+    );
+}
+
 const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gpsPermission, onMapClick, navLabel }) => {
     const [routePoints, setRoutePoints] = useState([]);
     const lastRouteRequest = useRef(0);
@@ -140,8 +163,21 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
 
                 {/* Active Target Marker */}
                 {step === 'PICKUP' && pickupPos && (
-                    <Marker position={pickupPos} icon={storeIcon}>
-                        <Popup className="font-tajawal font-black">موقع المتجر</Popup>
+                    <Marker
+                        position={pickupPos}
+                        icon={storeIcon}
+                        draggable={!!onMapClick}
+                        eventHandlers={{
+                            dragend: (e) => {
+                                const marker = e.target;
+                                const position = marker.getLatLng();
+                                if (onMapClick) onMapClick([position.lat, position.lng]);
+                            }
+                        }}
+                    >
+                        <Popup className="font-tajawal font-black">
+                            {onMapClick ? "موقع المتجر (اسحب للتعديل)" : "موقع المتجر المثبت"}
+                        </Popup>
                     </Marker>
                 )}
                 {step === 'DELIVERY' && deliveryPos && (
@@ -159,14 +195,10 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
 
                 <MapEvents />
                 <MapEffectsManager points={routePoints.length > 0 ? routePoints : [currentPos, step === 'PICKUP' ? pickupPos : deliveryPos]} />
-            </MapContainer>
 
-            {/* Map Action Overlays */}
-            <div className="absolute bottom-6 right-6 z-[400] flex flex-col gap-3">
-                <button className="w-14 h-14 bg-white rounded-2xl shadow-2xl flex items-center justify-center text-primary-500 border border-neutral-100">
-                    <Navigation className="w-7 h-7 fill-current" />
-                </button>
-            </div>
+                {/* Map Action Overlays (Connected to Map Logic) */}
+                <RecenterAction pos={currentPos || pickupPos} />
+            </MapContainer>
 
             {/* Navigation Status Badge with GPS Strength Icon */}
             <div className="absolute top-4 right-4 z-[400] px-4 py-2 bg-white/95 backdrop-blur-md rounded-2xl border border-neutral-200 shadow-xl flex items-center gap-3 animate-in fade-in duration-500">

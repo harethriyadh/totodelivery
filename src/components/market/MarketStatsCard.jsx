@@ -15,7 +15,7 @@ const MarketStatsCard = ({ amount, orders }) => {
                 </p>
                 <div className="flex items-baseline gap-1.5">
                     <span className="text-4xl font-extrabold text-neutral-900 leading-none">{amount}</span>
-                    <span className="text-[11px] font-bold text-neutral-400 uppercase">ر.س</span>
+                    <span className="text-[11px] font-bold text-neutral-400 uppercase">د.ع</span>
                 </div>
             </div>
 

@@ -1,11 +1,12 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, MapPin, Navigation, Package, X } from 'lucide-react';
 
 const OrderRequestModal = ({ order, onAccept, onDecline, timeLeft }) => {
     if (!order) return null;
 
-    return (
-        <div className="absolute inset-0 z-[60] bg-neutral-900/60 backdrop-blur-md flex items-center justify-center p-8">
+    return createPortal(
+        <div className="fixed inset-0 z-[2000] bg-neutral-900/60 backdrop-blur-md flex items-center justify-center p-8">
             <div className="bg-white w-full max-w-sm rounded-[40px] overflow-hidden slide-up shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] text-center border border-white/20">
                 <div className="bg-primary-50/50 py-10">
                     <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-primary-500/10 border-2 border-primary-100 rotate-3">
@@ -30,7 +31,7 @@ const OrderRequestModal = ({ order, onAccept, onDecline, timeLeft }) => {
                             <span className="text-[11px] font-black text-neutral-400 uppercase tracking-widest">المكسب الصافي</span>
                             <div className="flex items-baseline gap-1">
                                 <span className="text-2xl font-black text-primary-500">{order.earnings}</span>
-                                <span className="text-[11px] font-black text-primary-600 uppercase">ر.س</span>
+                                <span className="text-[11px] font-black text-primary-600 uppercase">د.ع</span>
                             </div>
                         </div>
                     </div>
@@ -52,7 +53,8 @@ const OrderRequestModal = ({ order, onAccept, onDecline, timeLeft }) => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

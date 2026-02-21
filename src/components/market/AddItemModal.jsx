@@ -18,10 +18,14 @@ const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
         price: '',
         unit: 'كجم',
         image: null,
+        texture: 'مات', // مات or شيمر
+        colors: [],
+        selectedBadges: [],
     });
 
     const units = ['كجم', 'حبة', 'علبة', 'كرتون'];
-    const categories = ['خضار', 'فواكه', 'لحوم', 'مخبوزات'];
+    const categories = ['خضار', 'فواكه', 'لحوم', 'مخبوزات', 'مكياج'];
+    const availableBadges = ['عضوي ١٠٠٪', 'مستورد طازج', 'جودة عالية'];
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -52,6 +56,9 @@ const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
                 price: '',
                 unit: 'كجم',
                 image: null,
+                texture: 'مات',
+                colors: [],
+                selectedBadges: [],
             });
         }
     }, [itemToEdit, isOpen]);
@@ -144,7 +151,7 @@ const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
                                         value={formData.price}
                                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                                     />
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 group-focus-within:text-primary-500 transition-colors">ر.س</span>
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 group-focus-within:text-primary-500 transition-colors">د.ع</span>
                                 </div>
                             </div>
                             <div className="relative" ref={unitDropdownRef}>
@@ -236,6 +243,103 @@ const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                             ></textarea>
+                        </div>
+
+                        {/* New Variant Fields (Texture & Colors) */}
+                        <div className="pt-4 border-t border-neutral-50 space-y-6">
+                            <h3 className="text-base font-bold text-neutral-900">خيارات المنتج (للجمال)</h3>
+
+                            {/* Texture Selection */}
+                            <div>
+                                <label className="block text-sm font-medium text-neutral-700 mb-3 truncate">اختاري القوام</label>
+                                <div className="flex p-1 bg-neutral-100 rounded-2xl w-fit">
+                                    {['مات', 'شيمر'].map((t) => (
+                                        <button
+                                            key={t}
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, texture: t })}
+                                            className={clsx(
+                                                "px-8 py-2.5 rounded-xl text-sm font-bold transition-all",
+                                                formData.texture === t
+                                                    ? "bg-white text-primary-600 shadow-sm"
+                                                    : "text-neutral-400 hover:text-neutral-600"
+                                            )}
+                                        >
+                                            {t === 'مات' ? 'مات' : 'شيمر/لامع'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Color Swatch Picker */}
+                            <div>
+                                <label className="block text-sm font-medium text-neutral-700 mb-3 truncate">اللون المناسب</label>
+                                <div className="flex flex-wrap gap-3 items-center">
+                                    {formData.colors?.map((color, idx) => (
+                                        <div key={idx} className="relative group">
+                                            <div
+                                                className="w-10 h-10 rounded-full border-2 border-white shadow-md cursor-pointer transform transition-transform group-hover:scale-110"
+                                                style={{ backgroundColor: color }}
+                                                title={color}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, colors: formData.colors.filter((_, i) => i !== idx) })}
+                                                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center scale-0 group-hover:scale-100 transition-transform shadow-sm"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <div className="relative">
+                                        <input
+                                            type="color"
+                                            id="colorPicker"
+                                            className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                                            onChange={(e) => {
+                                                const newColor = e.target.value;
+                                                if (newColor && !formData.colors?.includes(newColor)) {
+                                                    setFormData({ ...formData, colors: [...(formData.colors || []), newColor] });
+                                                }
+                                            }}
+                                        />
+                                        <label
+                                            htmlFor="colorPicker"
+                                            className="w-10 h-10 rounded-full border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-300 hover:text-primary-500 hover:border-primary-500 transition-all hover:scale-110 cursor-pointer bg-neutral-50"
+                                        >
+                                            <Plus className="w-5 h-5" />
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Product Features Badges */}
+                        <div className="pt-4 border-t border-neutral-50 space-y-4">
+                            <label className="block text-sm font-medium text-neutral-700 mb-2 truncate">مميزات المنتج</label>
+                            <div className="flex flex-wrap gap-2">
+                                {availableBadges.map((badge) => (
+                                    <button
+                                        key={badge}
+                                        type="button"
+                                        onClick={() => {
+                                            const current = formData.selectedBadges || [];
+                                            const next = current.includes(badge)
+                                                ? current.filter(b => b !== badge)
+                                                : [...current, badge];
+                                            setFormData({ ...formData, selectedBadges: next });
+                                        }}
+                                        className={clsx(
+                                            "px-4 py-2.5 rounded-full text-xs font-bold transition-all border",
+                                            formData.selectedBadges?.includes(badge)
+                                                ? "bg-primary-50 border-primary-200 text-primary-600 shadow-sm"
+                                                : "bg-[#f9f9f9] border-transparent text-neutral-500 hover:border-neutral-200"
+                                        )}
+                                    >
+                                        {badge}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>

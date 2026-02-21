@@ -6,7 +6,7 @@ const Notifications = ({ onBack }) => {
         {
             id: 1,
             title: 'تم إيداع الأرباح',
-            description: 'تم تحويل مبلغ 450.00 ر.س إلى محفظتك بنجاح.',
+            description: 'تم تحويل مبلغ 450.00 د.ع إلى محفظتك بنجاح.',
             time: 'منذ ساعتين',
             type: 'success'
         },
@@ -44,7 +44,7 @@ const Notifications = ({ onBack }) => {
                 {notifications.map((notif) => (
                     <div key={notif.id} className="app-card p-5 flex gap-4 tap-active active:bg-neutral-50 transition-all active:scale-[0.98]">
                         <div className={`w-14 h-14 rounded-[20px] flex items-center justify-center shrink-0 shadow-sm border ${notif.type === 'success' ? 'bg-emerald-50 text-emerald-500 border-emerald-100/50' :
-                                notif.type === 'info' ? 'bg-blue-50 text-blue-500 border-blue-100/50' : 'bg-amber-50 text-amber-500 border-amber-100/50'
+                            notif.type === 'info' ? 'bg-blue-50 text-blue-500 border-blue-100/50' : 'bg-amber-50 text-amber-500 border-amber-100/50'
                             }`}>
                             {notif.type === 'success' ? <CheckCircle className="w-7 h-7" /> :
                                 notif.type === 'info' ? <Info className="w-7 h-7" /> : <Clock className="w-7 h-7" />}

@@ -10,7 +10,8 @@ import DriverProfile from './DriverProfile';
 import Notifications from './Notifications';
 import TrackOrderMap from '../../components/driver/TrackOrderMap';
 import { useGeolocation } from '../../hooks/useGeolocation';
-import { calculateDistance } from '../../utils/mapUtils';
+import { calculateDistance as calcDist } from '../../utils/mapUtils';
+import { SERVICE_AREA, isWithinServiceArea } from '../../utils/geofencing';
 
 const DriverHome = () => {
     // State
@@ -20,6 +21,7 @@ const DriverHome = () => {
     const [itemsChecked, setItemsChecked] = useState({});
     const [view, setView] = useState('home');
     const [availableOrders, setAvailableOrders] = useState([]);
+    const [geofenceAlertShown, setGeofenceAlertShown] = useState(false);
 
     // 1. Real-Time Geolocation
     const { position, error: gpsError, permissionStatus, requestPermission, isNativeApp } = useGeolocation();
@@ -29,16 +31,32 @@ const DriverHome = () => {
         return isNativeApp || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }, [isNativeApp]);
 
+    // Error Handling & Geofence Notification
+    useEffect(() => {
+        if (gpsError && !geofenceAlertShown) {
+            alert('We are having trouble locating you. Please set your location manually.');
+            setGeofenceAlertShown(true);
+        }
+        if (position && !isWithinServiceArea(position.lat, position.lng) && !geofenceAlertShown) {
+            alert('تنبيه: أنت خارج نطاق الخدمة المعتمد حالياً.');
+            setGeofenceAlertShown(true);
+        }
+    }, [gpsError, position, geofenceAlertShown]);
+
     // Current coordinates (lat, lng array)
     const currentCoords = useMemo(() => {
-        return position ? [position.lat, position.lng] : [24.7136, 46.6753];
+        if (position && isWithinServiceArea(position.lat, position.lng)) {
+            return [position.lat, position.lng];
+        }
+        // Fallback: Default the map view to the center of the coordinates provided
+        return [SERVICE_AREA.center.lat, SERVICE_AREA.center.lng];
     }, [position]);
 
     // 2. Proximity Calculations (Geofencing)
     const distanceToTarget = useMemo(() => {
         if (!activeOrder || !position) return null;
         const target = step === 'PICKUP' ? activeOrder.pickupPos : activeOrder.deliveryPos;
-        return calculateDistance(position.lat, position.lng, target[0], target[1]);
+        return calcDist(position.lat, position.lng, target[0], target[1]);
     }, [activeOrder, step, position]);
 
     const proximityLocked = useMemo(() => {
@@ -205,7 +223,7 @@ const DriverHome = () => {
                                                 </div>
                                             </div>
                                             <div className="flex items-center justify-between pt-5 border-t border-neutral-50">
-                                                <span className="text-2xl font-black text-neutral-900">{order.earnings} ر.س</span>
+                                                <span className="text-2xl font-black text-neutral-900">{order.earnings} د.ع</span>
                                                 <button onClick={() => handleAcceptOrder(order)} className="btn-primary px-8 py-4 text-sm font-black">حجز الطلب (Reserve)</button>
                                             </div>
                                         </div>

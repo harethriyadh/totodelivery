@@ -46,7 +46,7 @@ const OrderCard = ({ order, onMarkUnavailable }) => {
                 </div>
                 <div>
                     <h4 className="font-black text-neutral-900 text-sm">{order.customerName}</h4>
-                    <p className="text-[11px] text-neutral-500 font-bold mt-0.5">{order.items.length} منتجات • {order.total} ر.س</p>
+                    <p className="text-[11px] text-neutral-500 font-bold mt-0.5">{order.items.length} منتجات • {order.total} د.ع</p>
                 </div>
             </div>
 

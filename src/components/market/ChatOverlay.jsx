@@ -1,5 +1,5 @@
-
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Send, X, User } from 'lucide-react';
 
 const ChatOverlay = ({ isOpen, onClose, driverName = "Driver" }) => {
@@ -23,8 +23,8 @@ const ChatOverlay = ({ isOpen, onClose, driverName = "Driver" }) => {
         setNewMessage("");
     };
 
-    return (
-        <div className="fixed inset-0 z-[100] bg-neutral-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
+    return createPortal(
+        <div className="fixed inset-0 z-[1000] bg-neutral-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
             <div className="bg-white w-full sm:max-w-md h-[80vh] sm:h-[600px] rounded-t-[32px] sm:rounded-3xl flex flex-col shadow-2xl animate-slide-up overflow-hidden">
                 {/* Header */}
                 <div className="bg-primary-500 p-4 pt-6 flex items-center justify-between text-white shadow-md z-10">
@@ -50,8 +50,8 @@ const ChatOverlay = ({ isOpen, onClose, driverName = "Driver" }) => {
                     {messages.map((msg) => (
                         <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm font-bold shadow-sm ${msg.sender === 'me'
-                                    ? 'bg-primary-500 text-white rounded-tl-none'
-                                    : 'bg-white text-neutral-800 border border-neutral-100 rounded-tr-none'
+                                ? 'bg-primary-500 text-white rounded-tl-none'
+                                : 'bg-white text-neutral-800 border border-neutral-100 rounded-tr-none'
                                 }`}>
                                 <p>{msg.text}</p>
                                 <span className={`text-[9px] mt-1 block opacity-70 ${msg.sender === 'me' ? 'text-primary-100' : 'text-neutral-400'}`}>
@@ -76,7 +76,8 @@ const ChatOverlay = ({ isOpen, onClose, driverName = "Driver" }) => {
                     </button>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
