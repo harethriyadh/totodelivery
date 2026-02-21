@@ -1,5 +1,6 @@
 import React from 'react';
-import { LogOut, FileText, CreditCard as CardIcon, ChevronLeft, ShieldCheck, Truck, UserCircle, Star } from 'lucide-react';
+import { LogOut, FileText, CreditCard as CardIcon, ChevronLeft, ShieldCheck, Truck, UserCircle, Star, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const MenuItem = ({ icon: Icon, label, status, onClick, danger }) => (
     <button
@@ -19,9 +20,16 @@ const MenuItem = ({ icon: Icon, label, status, onClick, danger }) => (
     </button>
 );
 
-const DriverProfile = () => {
+const DriverProfile = ({ onBack }) => {
+    const { logout } = useAuth();
     return (
         <div className="flex flex-col h-full bg-white viewport-scroll">
+            {/* Header / Nav */}
+            <div className="px-6 py-4 flex items-center mb-2">
+                <button onClick={onBack} className="w-10 h-10 flex items-center justify-center bg-neutral-50 rounded-full text-neutral-800">
+                    <ArrowLeft className="w-5 h-5 rtl-flip" />
+                </button>
+            </div>
             {/* Header Section */}
             <div className="p-10 pb-10 text-center">
                 <div className="relative inline-block mb-6">
@@ -45,7 +53,7 @@ const DriverProfile = () => {
 
                 <div className="bg-white rounded-[32px] overflow-hidden mx-4 mb-10 shadow-card border border-neutral-100/50">
                     <MenuItem icon={ShieldCheck} label="مركز المساعدة والدعم" />
-                    <MenuItem icon={LogOut} label="تسجيل الخروج" danger />
+                    <MenuItem icon={LogOut} label="تسجيل الخروج" danger onClick={logout} />
                 </div>
             </div>
         </div>

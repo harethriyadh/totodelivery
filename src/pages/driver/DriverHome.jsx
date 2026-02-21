@@ -254,10 +254,45 @@ const DriverHome = () => {
 
             {/* Bottom Nav */}
             {view !== 'notifications' && (
-                <nav className="h-20 bg-white border-t border-neutral-50 flex justify-around items-center sticky bottom-0 left-0 right-0 w-full z-50 px-6 shadow-[0_-15px_45px_rgba(0,0,0,0.08)]">
-                    <button onClick={() => setView('home')} className={clsx("nav-pill flex flex-col items-center gap-1", view === 'home' && "nav-pill-active")}><Home className="w-6 h-6" />{view === 'home' && <span className="text-[10px] font-black">الرئيسية</span>}</button>
-                    <button onClick={() => activeOrder && setView('active')} disabled={!activeOrder} className={clsx("nav-pill flex flex-col items-center gap-1 relative", view === 'active' && "nav-pill-active")}><Compass className="w-6 h-6" />{activeOrder && view !== 'active' && <div className="absolute top-1 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white pulsing-brand"></div>}{view === 'active' && <span className="text-[10px] font-black">الرحلة</span>}</button>
-                    <button onClick={() => setView('profile')} className={clsx("nav-pill flex flex-col items-center gap-1", view === 'profile' && "nav-pill-active")}><User className="w-6 h-6" />{view === 'profile' && <span className="text-[10px] font-black">حسابي</span>}</button>
+                <nav className="h-20 bg-white border-t border-neutral-100 flex items-center sticky bottom-0 left-0 right-0 w-full z-50 shadow-[0_-15px_45px_rgba(0,0,0,0.08)]">
+                    <button
+                        onClick={() => setView('home')}
+                        className={clsx(
+                            "flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-300",
+                            view === 'home' ? "text-primary-500" : "text-neutral-400"
+                        )}
+                    >
+                        <Home className={clsx("w-6 h-6 transition-transform duration-300", view === 'home' && "scale-110")} />
+                        <span className={clsx("text-[10px] font-bold transition-all duration-300", view === 'home' ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1")}>الرئيسية</span>
+                    </button>
+
+                    <button
+                        onClick={() => activeOrder && setView('active')}
+                        disabled={!activeOrder}
+                        className={clsx(
+                            "flex-1 flex flex-col items-center justify-center gap-1 relative transition-all duration-300",
+                            view === 'active' ? "text-primary-500" : (activeOrder ? "text-neutral-600" : "text-neutral-300")
+                        )}
+                    >
+                        <div className="relative">
+                            <Compass className={clsx("w-6 h-6 transition-transform duration-300", view === 'active' && "scale-110")} />
+                            {activeOrder && view !== 'active' && (
+                                <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white pulsing-brand"></div>
+                            )}
+                        </div>
+                        <span className={clsx("text-[10px] font-bold transition-all duration-300", view === 'active' ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1")}>الرحلة</span>
+                    </button>
+
+                    <button
+                        onClick={() => setView('profile')}
+                        className={clsx(
+                            "flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-300",
+                            view === 'profile' ? "text-primary-500" : "text-neutral-400"
+                        )}
+                    >
+                        <User className={clsx("w-6 h-6 transition-transform duration-300", view === 'profile' && "scale-110")} />
+                        <span className={clsx("text-[10px] font-bold transition-all duration-300", view === 'profile' ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1")}>حسابي</span>
+                    </button>
                 </nav>
             )}
         </div>

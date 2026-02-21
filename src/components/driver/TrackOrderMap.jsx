@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polyline, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Store, User, Navigation, AlertCircle, Signal, SignalHigh, SignalLow } from 'lucide-react';
@@ -20,9 +20,21 @@ function MapEffectsManager({ points, zoom = 16 }) {
     return null;
 }
 
-const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gpsPermission }) => {
+const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gpsPermission, onMapClick, navLabel }) => {
     const [routePoints, setRoutePoints] = useState([]);
     const lastRouteRequest = useRef(0);
+
+    // Map Click Listener Component
+    function MapEvents() {
+        useMapEvents({
+            click: (e) => {
+                if (onMapClick) {
+                    onMapClick([e.latlng.lat, e.latlng.lng]);
+                }
+            },
+        });
+        return null;
+    }
 
     // Custom Icons
     const createCustomIcon = (icon, color) => {
@@ -145,6 +157,7 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
                     </Marker>
                 )}
 
+                <MapEvents />
                 <MapEffectsManager points={routePoints.length > 0 ? routePoints : [currentPos, step === 'PICKUP' ? pickupPos : deliveryPos]} />
             </MapContainer>
 
@@ -161,7 +174,7 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
                     {gpsError ? <SignalLow className="w-4 h-4 text-red-500" /> : <SignalHigh className="w-4 h-4 text-green-500" />}
                 </div>
                 <span className="text-[11px] font-black text-neutral-800 uppercase tracking-tighter">
-                    {step === 'PICKUP' ? 'ملاحة: المتجر' : 'ملاحة: العميل'}
+                    {navLabel || (step === 'PICKUP' ? 'ملاحة: المتجر' : 'ملاحة: العميل')}
                 </span>
             </div>
         </div>
