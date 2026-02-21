@@ -5,3 +5,8 @@ dist
 package-lock.json
 *.log
 .DS_Store
+.agents
+.agent
+_agents
+_agent
+.env*
