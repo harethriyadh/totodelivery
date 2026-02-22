@@ -104,31 +104,31 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                 onClose={() => setAlertConfig(prev => ({ ...prev, open: false }))}
             />
 
-            <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-300">
                 <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm" onClick={onClose} />
 
-                <div className="relative w-full max-w-xl bg-white rounded-t-[40px] sm:rounded-[32px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-500 max-h-[95vh] flex flex-col">
+                <div className="relative w-full max-w-xl bg-white rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500 max-h-[90vh] flex flex-col">
 
-                    <div className="px-8 py-6 border-b border-neutral-100 flex items-center justify-between bg-white z-20">
-                        <h3 className="text-xl font-black text-neutral-900">إعدادات الحساب</h3>
-                        <button onClick={onClose} className="w-11 h-11 rounded-full bg-neutral-50 flex items-center justify-center text-neutral-400 active:scale-90 transition-transform">
-                            <X size={22} />
+                    <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between bg-white z-20">
+                        <h3 className="text-lg font-extrabold text-neutral-900">إعدادات الحساب</h3>
+                        <button onClick={onClose} className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center text-neutral-400 active:scale-90 transition-transform">
+                            <X size={20} />
                         </button>
                     </div>
 
-                    <div className="p-8 overflow-y-auto space-y-8 flex-1">
+                    <div className="p-6 overflow-y-auto space-y-5 flex-1">
                         {/* MAP UI SECTION */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-end gap-2">
-                                <span className="text-[11px] font-black text-neutral-400 uppercase tracking-widest">تحديد موقع المتجر</span>
+                                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">تحديد موقع المتجر</span>
                                 <div className="w-1.5 h-1.5 rounded-full bg-primary-500" />
                             </div>
 
-                            <div className="h-64 rounded-[32px] overflow-hidden border border-neutral-100 relative group bg-neutral-50 shadow-inner">
+                            <div className="h-56 rounded-[24px] overflow-hidden border border-neutral-100 relative group bg-neutral-50 shadow-inner">
                                 {/* Fixed Label: Centered top to prevent Zoom Button overlap */}
-                                <div className="absolute top-5 inset-x-0 z-[50] flex justify-center px-12 pointer-events-none">
-                                    <div className="bg-white/95 backdrop-blur-md border border-neutral-200/50 px-5 py-2.5 rounded-2xl shadow-xl shadow-black/5">
-                                        <span className="text-[11px] font-black text-neutral-800 whitespace-nowrap">
+                                <div className="absolute top-4 inset-x-0 z-[50] flex justify-center px-12 pointer-events-none">
+                                    <div className="bg-white/95 backdrop-blur-md border border-neutral-200/50 px-4 py-2 rounded-xl shadow-xl shadow-black/5">
+                                        <span className="text-[10px] font-black text-neutral-800 whitespace-nowrap">
                                             اسحب الدبوس لتحديد الموقع بدقة
                                         </span>
                                     </div>
@@ -140,64 +140,49 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                                     step="PICKUP"
                                     onMapClick={handleLocationSelect}
                                     navLabel={null}
+                                    showRecenter={false}
                                 />
-
-                                {/* Improved Geolocation Button: Fixed click-through logic */}
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation(); // Stops interaction with the map behind the button
-                                        if ("geolocation" in navigator) {
-                                            navigator.geolocation.getCurrentPosition((pos) => {
-                                                handleLocationSelect([pos.coords.latitude, pos.coords.longitude]);
-                                            });
-                                        }
-                                    }}
-                                    className="absolute bottom-5 right-5 z-[50] w-14 h-14 bg-white rounded-[20px] shadow-2xl flex items-center justify-center text-green-500 border border-green-50 active:scale-90 transition-all hover:bg-green-50"
-                                >
-                                    <LocateFixed size={28} />
-                                </button>
                             </div>
                         </div>
 
                         {/* Input Fields */}
-                        <div className="grid grid-cols-1 gap-5">
-                            <div className="space-y-2 text-right">
-                                <label className="text-[11px] font-black text-neutral-400 uppercase tracking-widest mr-1">اسم صاحب المتجر</label>
+                        <div className="grid grid-cols-1 gap-4">
+                            <div className="space-y-1 text-right">
+                                <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mr-1">اسم صاحب المتجر</label>
                                 <div className="relative group">
                                     <User className="absolute right-5 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-primary-500 transition-colors w-5 h-5" />
                                     <input
                                         type="text"
                                         value={formData.ownerName}
                                         onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-                                        className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-4 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right"
+                                        className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-3.5 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right"
                                         dir="rtl"
                                     />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                <div className="space-y-2 text-right">
-                                    <label className="text-[11px] font-black text-neutral-400 uppercase tracking-widest mr-1">رقم الهاتف</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1 text-right">
+                                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mr-1">رقم الهاتف</label>
                                     <div className="relative group">
                                         <Phone className="absolute right-5 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-primary-500 transition-colors w-5 h-5" />
                                         <input
                                             type="tel"
                                             value={formData.phone1}
                                             onChange={(e) => setFormData({ ...formData, phone1: e.target.value })}
-                                            className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-4 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right"
+                                            className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-3.5 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right"
                                         />
                                     </div>
                                 </div>
-                                <div className="space-y-2 text-right">
-                                    <label className="text-[11px] font-black text-neutral-400 uppercase tracking-widest mr-1">عنوان المتجر</label>
+                                <div className="space-y-1 text-right">
+                                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mr-1">عنوان المتجر</label>
                                     <div className="relative group">
                                         <MapPin className="absolute right-5 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-primary-500 transition-colors w-5 h-5" />
                                         <input
                                             type="text"
                                             value={formData.address}
                                             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                            className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-4 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right"
+                                            className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-3.5 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right"
                                             dir="rtl"
                                         />
                                     </div>
@@ -207,17 +192,17 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                     </div>
 
                     {/* Modal Actions */}
-                    <div className="p-8 border-t border-neutral-100 flex flex-col sm:flex-row gap-4 bg-white">
+                    <div className="p-6 border-t border-neutral-100 flex flex-col sm:flex-row gap-3 bg-white">
                         <button
                             onClick={handleSave}
-                            className="flex-[2] order-1 sm:order-2 py-4.5 rounded-2xl bg-primary-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-primary-500/20 active:scale-[0.98] transition-all"
+                            className="flex-[2] order-1 sm:order-2 py-4 rounded-2xl bg-primary-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-primary-500/20 active:scale-[0.98] transition-all"
                         >
                             <Save size={18} />
                             حفظ التغييرات
                         </button>
                         <button
                             onClick={onClose}
-                            className="flex-1 order-2 sm:order-1 py-4.5 rounded-2xl bg-neutral-100 text-neutral-500 font-bold text-sm active:scale-[0.98] transition-all"
+                            className="flex-1 order-2 sm:order-1 py-4 rounded-2xl bg-neutral-100 text-neutral-500 font-bold text-sm active:scale-[0.98] transition-all"
                         >
                             إلغاء
                         </button>

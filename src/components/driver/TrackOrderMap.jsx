@@ -43,7 +43,7 @@ function RecenterAction({ pos }) {
     );
 }
 
-const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gpsPermission, onMapClick, navLabel }) => {
+const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gpsPermission, onMapClick, navLabel, showRecenter = true }) => {
     const [routePoints, setRoutePoints] = useState([]);
     const lastRouteRequest = useRef(0);
 
@@ -197,7 +197,7 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
                 <MapEffectsManager points={routePoints.length > 0 ? routePoints : [currentPos, step === 'PICKUP' ? pickupPos : deliveryPos]} />
 
                 {/* Map Action Overlays (Connected to Map Logic) */}
-                <RecenterAction pos={currentPos || pickupPos} />
+                {showRecenter && <RecenterAction pos={currentPos || pickupPos} />}
             </MapContainer>
 
             {/* Navigation Status Badge with GPS Strength Icon */}
