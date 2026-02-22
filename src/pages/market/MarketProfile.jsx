@@ -13,7 +13,6 @@ import {
     AlertCircle,
     CheckCircle2
 } from 'lucide-react';
-import { clsx } from 'clsx';
 import TrackOrderMap from '../../components/driver/TrackOrderMap';
 import { useAuth } from '../../context/AuthContext';
 import { SERVICE_AREA, isWithinServiceArea } from '../../utils/geofencing';
@@ -67,14 +66,9 @@ const StatusModal = ({ isOpen, onClose, title, message, type = 'error', onConfir
 const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
     const [formData, setFormData] = useState(initialData);
     const [alertConfig, setAlertConfig] = useState({ open: false, title: '', message: '', type: 'error' });
-    const [isInputFocused, setIsInputFocused] = useState(false);
-    const scrollContainerRef = React.useRef(null);
 
     useEffect(() => {
-        if (isOpen) {
-            setFormData(initialData);
-            setIsInputFocused(false);
-        }
+        if (isOpen) setFormData(initialData);
     }, [isOpen, initialData]);
 
     const showAlert = (title, message, type = 'error') => {
@@ -87,14 +81,6 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
         } else {
             showAlert('خارج النطاق', 'تنبيه: هذا الموقع خارج نطاق الخدمة المسموح به حالياً.', 'error');
         }
-    };
-
-    const handleFocus = (e) => {
-        setIsInputFocused(true);
-        // Small delay to allow keyboard to appear and layout to shift
-        setTimeout(() => {
-            e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 300);
     };
 
     const handleSave = () => {
@@ -118,49 +104,35 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                 onClose={() => setAlertConfig(prev => ({ ...prev, open: false }))}
             />
 
-            <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-500">
-                <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
+            <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
+                <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm" onClick={onClose} />
 
-                <div className={clsx(
-                    "relative w-full max-w-xl bg-white shadow-2xl overflow-hidden flex flex-col transition-all duration-500",
-                    isInputFocused ? "h-[100vh] sm:h-auto rounded-none sm:rounded-[32px]" : "h-auto rounded-t-[40px] sm:rounded-[32px] max-h-[95vh]"
-                )}>
-                    {/* Header: Always visible */}
-                    <div className="px-8 py-5 border-b border-neutral-100 flex items-center justify-between bg-white z-20 shrink-0">
-                        <div className="flex flex-col text-right">
-                            <h3 className="text-xl font-black text-neutral-900 leading-tight">إعدادات الحساب</h3>
-                            <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">تعديل الملف الشخصي</p>
-                        </div>
-                        <button onClick={onClose} className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center text-neutral-400 active:scale-90 transition-transform">
-                            <X size={20} />
+                <div className="relative w-full max-w-xl bg-white rounded-t-[40px] sm:rounded-[32px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-500 max-h-[95vh] flex flex-col">
+
+                    <div className="px-8 py-6 border-b border-neutral-100 flex items-center justify-between bg-white z-20">
+                        <h3 className="text-xl font-black text-neutral-900">إعدادات الحساب</h3>
+                        <button onClick={onClose} className="w-11 h-11 rounded-full bg-neutral-50 flex items-center justify-center text-neutral-400 active:scale-90 transition-transform">
+                            <X size={22} />
                         </button>
                     </div>
 
-                    {/* Scrollable Form Container */}
-                    <div
-                        ref={scrollContainerRef}
-                        className="p-8 overflow-y-auto space-y-8 flex-1 scroll-smooth pb-12"
-                    >
-                        {/* MAP UI SECTION: Dynamic Height */}
+                    <div className="p-8 overflow-y-auto space-y-8 flex-1">
+                        {/* MAP UI SECTION */}
                         <div className="space-y-4">
-                            <div className="flex items-center justify-end gap-2 px-1">
-                                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">تحديد موقع المتجر</span>
-                                <div className="w-1 h-1 rounded-full bg-primary-500" />
+                            <div className="flex items-center justify-end gap-2">
+                                <span className="text-[11px] font-black text-neutral-400 uppercase tracking-widest">تحديد موقع المتجر</span>
+                                <div className="w-1.5 h-1.5 rounded-full bg-primary-500" />
                             </div>
 
-                            <div className={clsx(
-                                "rounded-[32px] overflow-hidden border border-neutral-100 relative group bg-neutral-50 shadow-inner transition-all duration-500 ease-in-out",
-                                isInputFocused ? "h-32 opacity-70" : "h-64"
-                            )}>
-                                {!isInputFocused && (
-                                    <div className="absolute top-5 inset-x-0 z-[50] flex justify-center px-12 pointer-events-none animate-in fade-in duration-500">
-                                        <div className="bg-white/95 backdrop-blur-md border border-neutral-200/50 px-5 py-2.5 rounded-2xl shadow-xl shadow-black/5">
-                                            <span className="text-[11px] font-black text-neutral-800 whitespace-nowrap">
-                                                اسحب الدبوس لتحديد الموقع بدقة
-                                            </span>
-                                        </div>
+                            <div className="h-64 rounded-[32px] overflow-hidden border border-neutral-100 relative group bg-neutral-50 shadow-inner">
+                                {/* Fixed Label: Centered top to prevent Zoom Button overlap */}
+                                <div className="absolute top-5 inset-x-0 z-[50] flex justify-center px-12 pointer-events-none">
+                                    <div className="bg-white/95 backdrop-blur-md border border-neutral-200/50 px-5 py-2.5 rounded-2xl shadow-xl shadow-black/5">
+                                        <span className="text-[11px] font-black text-neutral-800 whitespace-nowrap">
+                                            اسحب الدبوس لتحديد الموقع بدقة
+                                        </span>
                                     </div>
-                                )}
+                                </div>
 
                                 <TrackOrderMap
                                     pickupPos={formData.storeLocation}
@@ -170,27 +142,26 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                                     navLabel={null}
                                 />
 
-                                {!isInputFocused && (
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if ("geolocation" in navigator) {
-                                                navigator.geolocation.getCurrentPosition((pos) => {
-                                                    handleLocationSelect([pos.coords.latitude, pos.coords.longitude]);
-                                                });
-                                            }
-                                        }}
-                                        className="absolute bottom-5 right-5 z-[50] w-12 h-12 bg-white rounded-[18px] shadow-2xl flex items-center justify-center text-green-500 border border-green-50 active:scale-90 transition-all hover:bg-green-50"
-                                    >
-                                        <LocateFixed size={24} />
-                                    </button>
-                                )}
+                                {/* Improved Geolocation Button: Fixed click-through logic */}
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // Stops interaction with the map behind the button
+                                        if ("geolocation" in navigator) {
+                                            navigator.geolocation.getCurrentPosition((pos) => {
+                                                handleLocationSelect([pos.coords.latitude, pos.coords.longitude]);
+                                            });
+                                        }
+                                    }}
+                                    className="absolute bottom-5 right-5 z-[50] w-14 h-14 bg-white rounded-[20px] shadow-2xl flex items-center justify-center text-green-500 border border-green-50 active:scale-90 transition-all hover:bg-green-50"
+                                >
+                                    <LocateFixed size={28} />
+                                </button>
                             </div>
                         </div>
 
                         {/* Input Fields */}
-                        <div className="grid grid-cols-1 gap-6">
+                        <div className="grid grid-cols-1 gap-5">
                             <div className="space-y-2 text-right">
                                 <label className="text-[11px] font-black text-neutral-400 uppercase tracking-widest mr-1">اسم صاحب المتجر</label>
                                 <div className="relative group">
@@ -198,16 +169,14 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                                     <input
                                         type="text"
                                         value={formData.ownerName}
-                                        onFocus={handleFocus}
-                                        onBlur={() => setIsInputFocused(false)}
                                         onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-                                        className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-4 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right shadow-sm"
+                                        className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-4 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right"
                                         dir="rtl"
                                     />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                 <div className="space-y-2 text-right">
                                     <label className="text-[11px] font-black text-neutral-400 uppercase tracking-widest mr-1">رقم الهاتف</label>
                                     <div className="relative group">
@@ -215,10 +184,8 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                                         <input
                                             type="tel"
                                             value={formData.phone1}
-                                            onFocus={handleFocus}
-                                            onBlur={() => setIsInputFocused(false)}
                                             onChange={(e) => setFormData({ ...formData, phone1: e.target.value })}
-                                            className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-4 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right shadow-sm"
+                                            className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-4 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right"
                                         />
                                     </div>
                                 </div>
@@ -229,10 +196,8 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                                         <input
                                             type="text"
                                             value={formData.address}
-                                            onFocus={handleFocus}
-                                            onBlur={() => setIsInputFocused(false)}
                                             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                            className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-4 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right shadow-sm"
+                                            className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-4 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right"
                                             dir="rtl"
                                         />
                                     </div>
@@ -241,18 +206,18 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                         </div>
                     </div>
 
-                    {/* Modal Actions: Static Position at bottom of flex container */}
-                    <div className="p-6 border-t border-neutral-100 flex flex-col sm:flex-row gap-3 bg-white shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
+                    {/* Modal Actions */}
+                    <div className="p-8 border-t border-neutral-100 flex flex-col sm:flex-row gap-4 bg-white">
                         <button
                             onClick={handleSave}
-                            className="flex-[2] order-1 sm:order-2 py-4 rounded-2xl bg-primary-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-primary-500/20 active:scale-[0.98] transition-all"
+                            className="flex-[2] order-1 sm:order-2 py-4.5 rounded-2xl bg-primary-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-primary-500/20 active:scale-[0.98] transition-all"
                         >
                             <Save size={18} />
                             حفظ التغييرات
                         </button>
                         <button
                             onClick={onClose}
-                            className="flex-1 order-2 sm:order-1 py-4 rounded-2xl bg-neutral-100 text-neutral-500 font-bold text-sm active:scale-[0.98] transition-all"
+                            className="flex-1 order-2 sm:order-1 py-4.5 rounded-2xl bg-neutral-100 text-neutral-500 font-bold text-sm active:scale-[0.98] transition-all"
                         >
                             إلغاء
                         </button>
