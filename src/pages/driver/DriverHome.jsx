@@ -12,8 +12,10 @@ import TrackOrderMap from '../../components/driver/TrackOrderMap';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { calculateDistance as calcDist } from '../../utils/mapUtils';
 import { SERVICE_AREA, isWithinServiceArea } from '../../utils/geofencing';
+import { useAuth } from '../../context/AuthContext';
 
 const DriverHome = () => {
+    const { user } = useAuth();
     // State
     const [isOnline, setIsOnline] = useState(false);
     const [activeOrder, setActiveOrder] = useState(null);
@@ -156,7 +158,9 @@ const DriverHome = () => {
                         <div className="flex justify-between items-center mb-8">
                             <StatusToggle isOnline={isOnline} onToggle={handleToggleOnline} />
                             <div className="text-right">
-                                <h3 className="text-sm font-black text-neutral-900 leading-none">كابتن أحمد</h3>
+                                <h3 className="text-sm font-black text-neutral-900 leading-none">
+                                    {user?.username === 'driver' ? 'كابتن أحمد' : (user?.username || 'كابتن')}
+                                </h3>
                                 <p className="text-[10px] text-primary-500 font-bold uppercase mt-1">شريك بلاتيني</p>
                             </div>
                         </div>

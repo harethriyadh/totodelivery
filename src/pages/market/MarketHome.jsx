@@ -19,7 +19,9 @@ const MarketHome = () => {
             <div className="flex justify-between items-center mb-8">
                 <StatusToggle isOnline={isOnline} onToggle={toggleOnline} />
                 <div className="text-right">
-                    <h3 className="text-sm font-black text-neutral-900 leading-none">توتو ماركت</h3>
+                    <h3 className="text-sm font-black text-neutral-900 leading-none">
+                        {user?.username === 'market' ? 'توتو ماركت' : (user?.username || 'متجري')}
+                    </h3>
                     <p className="text-[10px] text-primary-500 font-bold uppercase mt-1">فرع النعيم</p>
                 </div>
             </div>

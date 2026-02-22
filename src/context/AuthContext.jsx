@@ -15,21 +15,26 @@ export const AuthProvider = ({ children }) => {
         // Simulate checking for an existing session
         const storedUser = localStorage.getItem('user_role');
         if (storedUser) {
-            setUser({ role: storedUser });
+            setUser({
+                role: storedUser,
+                username: localStorage.getItem('username') || ''
+            });
             setIsOnline(localStorage.getItem('market_online') === 'true');
         }
         setLoading(false);
     }, []);
 
-    const login = (role) => {
-        setUser({ role });
+    const login = (username, role) => {
+        setUser({ username, role });
         localStorage.setItem('user_role', role);
+        localStorage.setItem('username', username);
     };
 
     const logout = () => {
         setUser(null);
         setIsOnline(false);
         localStorage.removeItem('user_role');
+        localStorage.removeItem('username');
         localStorage.removeItem('market_online');
     };
 
