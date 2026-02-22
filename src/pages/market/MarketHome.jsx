@@ -6,7 +6,7 @@ import { Package, TrendingUp, Clock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const MarketHome = () => {
-    const { isOnline, toggleOnline } = useAuth();
+    const { user, isOnline, toggleOnline } = useAuth();
 
     const topItems = [
         { id: 1, name: 'طماطم بلدي', sales: 45 },

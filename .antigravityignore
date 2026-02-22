@@ -10,3 +10,4 @@ package-lock.json
 _agents
 _agent
 .env*
+API_DATABASE_SCHEMAS.txt

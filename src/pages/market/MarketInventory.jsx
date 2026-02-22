@@ -36,7 +36,9 @@ const MarketInventory = () => {
     };
 
     const confirmDelete = () => {
-        setItems(items.filter(item => item.id !== deleteConfirmId));
+        setItems(items.map(item =>
+            item.id === deleteConfirmId ? { ...item, deleted_at: new Date().toISOString() } : item
+        ));
         setDeleteConfirmId(null);
     };
 
@@ -73,7 +75,7 @@ const MarketInventory = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-                {items.map(item => (
+                {items.filter(item => !item.deleted_at).map(item => (
                     <InventoryCard
                         key={item.id}
                         item={item}

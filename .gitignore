@@ -143,3 +143,10 @@ vite.config.ts.timestamp-*
 .agent/
 _agents/
 _agent/
+
+# Miscellaneous
+.DS_Store
+.vscode/
+.idea/
+*.local
+API_DATABASE_SCHEMAS.txt

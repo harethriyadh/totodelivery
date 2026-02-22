@@ -9,6 +9,8 @@ const MarketOrders = () => {
             customerName: 'سارة أحمد',
             time: 'منذ 5 دقائق',
             status: 'pending',
+            payment_method: 'cash',
+            payment_status: 'unpaid',
             total: '45.00',
             items: [
                 { id: 1, name: 'طماطم بلدي', quantity: 2, unavailable: false },
@@ -20,6 +22,8 @@ const MarketOrders = () => {
             customerName: 'فهد محمد',
             time: 'منذ 10 دقائق',
             status: 'pending',
+            payment_method: 'wallet',
+            payment_status: 'paid',
             total: '12.00',
             items: [
                 { id: 3, name: 'ليمون', quantity: 3, unavailable: false }

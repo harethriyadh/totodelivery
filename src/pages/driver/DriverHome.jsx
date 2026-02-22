@@ -16,8 +16,9 @@ import { useAuth } from '../../context/AuthContext';
 
 const DriverHome = () => {
     const { user } = useAuth();
-    // State
-    const [isOnline, setIsOnline] = useState(false);
+    // State: ('offline', 'available', 'busy', 'on_break')
+    const [driverStatus, setDriverStatus] = useState('offline');
+    const isOnline = driverStatus === 'available';
     const [activeOrder, setActiveOrder] = useState(null);
     const [step, setStep] = useState('PICKUP'); // PICKUP or DELIVERY
     const [itemsChecked, setItemsChecked] = useState({});
@@ -96,12 +97,9 @@ const DriverHome = () => {
         }
     }, [isOnline, activeOrder, availableOrders.length, currentCoords]);
 
-    const handleToggleOnline = () => {
-        setIsOnline(prev => {
-            const next = !prev;
-            if (!next) setAvailableOrders([]);
-            return next;
-        });
+    const handleStatusChange = (newStatus) => {
+        setDriverStatus(newStatus);
+        if (newStatus === 'offline') setAvailableOrders([]);
     };
 
     const handleAcceptOrder = (order) => {
@@ -156,7 +154,7 @@ const DriverHome = () => {
                 {view === 'home' && (
                     <div className="px-6 py-6 slide-up">
                         <div className="flex justify-between items-center mb-8">
-                            <StatusToggle isOnline={isOnline} onToggle={handleToggleOnline} />
+                            <StatusToggle status={driverStatus} onStatusChange={handleStatusChange} />
                             <div className="text-right">
                                 <h3 className="text-sm font-black text-neutral-900 leading-none">
                                     {user?.username === 'driver' ? 'كابتن أحمد' : (user?.username || 'كابتن')}

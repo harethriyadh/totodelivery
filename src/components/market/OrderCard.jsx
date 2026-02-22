@@ -41,12 +41,32 @@ const OrderCard = ({ order, onMarkUnavailable }) => {
             </div>
 
             <div className="flex gap-4 mb-4">
-                <div className="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600">
+                <div className="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600 shadow-sm border border-primary-100">
                     <Package className="w-6 h-6" />
                 </div>
-                <div>
-                    <h4 className="font-black text-neutral-900 text-sm">{order.customerName}</h4>
+                <div className="flex-1">
+                    <div className="flex justify-between items-center w-full">
+                        <h4 className="font-black text-neutral-900 text-sm">{order.customerName}</h4>
+                        <div className="flex items-center gap-1.5 px-2 py-1 bg-neutral-50 rounded-lg border border-neutral-100">
+                            <span className="text-[9px] font-black text-neutral-400 capitalize">
+                                {order.payment_method === 'cash' ? 'نقداً (Cash)' : 'محفظة (Wallet)'}
+                            </span>
+                        </div>
+                    </div>
                     <p className="text-[11px] text-neutral-500 font-bold mt-0.5">{order.items.length} منتجات • {order.total} د.ع</p>
+                    <div className="flex items-center gap-2 mt-2">
+                        <span className={clsx(
+                            "text-[9px] font-black px-2 py-0.5 rounded-full border",
+                            order.payment_status === 'paid'
+                                ? "text-green-600 bg-green-50 border-green-100"
+                                : "text-orange-600 bg-orange-50 border-orange-100"
+                        )}>
+                            {order.payment_status === 'paid' ? 'مدفوع (Paid)' : 'بانتظار الدفع (Unpaid)'}
+                        </span>
+                        {order.cancellation_reason && (
+                            <span className="text-[9px] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">سبب الإلغاء: {order.cancellation_reason}</span>
+                        )}
+                    </div>
                 </div>
             </div>
 

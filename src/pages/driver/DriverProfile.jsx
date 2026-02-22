@@ -49,10 +49,17 @@ const DriverProfile = ({ onBack }) => {
             <div className="flex-1 bg-neutral-50 pt-4 rounded-t-[40px] border-t border-neutral-100">
                 <div className="bg-white rounded-[32px] overflow-hidden mx-4 mb-6 shadow-card border border-neutral-100/50">
                     <MenuItem icon={UserCircle} label="المعلومات الشخصية" status="تعديل الاسم، الجوال" />
+                    <MenuItem icon={Truck} label="بيانات المركبة" status="رقم اللوحة: بغداد - 12345" />
+                    <MenuItem
+                        icon={ShieldCheck}
+                        label="حالة التوثيق"
+                        status="الحساب موثق بالكامل"
+                        onClick={() => { }}
+                    />
                 </div>
 
                 <div className="bg-white rounded-[32px] overflow-hidden mx-4 mb-10 shadow-card border border-neutral-100/50">
-                    <MenuItem icon={ShieldCheck} label="مركز المساعدة والدعم" />
+                    <MenuItem icon={Star} label="إحصائيات الأداء" status="تقييم 4.9 • 1,240 رحلة" />
                     <MenuItem icon={LogOut} label="تسجيل الخروج" danger onClick={logout} />
                 </div>
             </div>
