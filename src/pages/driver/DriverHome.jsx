@@ -29,11 +29,6 @@ const DriverHome = () => {
     // 1. Real-Time Geolocation
     const { position, error: gpsError, permissionStatus, requestPermission, isNativeApp } = useGeolocation();
 
-    // Mobile Detection
-    const isMobile = useMemo(() => {
-        return isNativeApp || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    }, [isNativeApp]);
-
     // Error Handling & Geofence Notification
     useEffect(() => {
         if (gpsError && !geofenceAlertShown) {

@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import StatusToggle from '../../components/driver/StatusToggle';
+import React from 'react';
+import MarketStatusToggle from '../../components/market/MarketStatusToggle';
 import MarketStatsCard from '../../components/market/MarketStatsCard';
 import { Package, TrendingUp, Clock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -17,7 +17,7 @@ const MarketHome = () => {
     return (
         <div className="px-6 py-6 slide-up">
             <div className="flex justify-between items-center mb-8">
-                <StatusToggle isOnline={isOnline} onToggle={toggleOnline} />
+                <MarketStatusToggle isOnline={isOnline} onToggle={toggleOnline} />
                 <div className="text-right">
                     <h3 className="text-sm font-black text-neutral-900 leading-none">
                         {user?.username === 'market' ? 'توتو ماركت' : (user?.username || 'متجري')}

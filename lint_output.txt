@@ -1,0 +1,143 @@
+
+> totodelivery@0.0.0 lint
+> eslint .
+
+
+/home/hareth/test/totodelivery/src/components/driver/TrackOrderMap.jsx
+  113:8  warning  React Hook useEffect has a missing dependency: 'routePoints.length'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/hareth/test/totodelivery/src/components/market/AddItemModal.jsx
+  45:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  43 |     useEffect(() => {
+  44 |         if (!isOpen) {
+> 45 |             setIsUnitOpen(false);
+     |             ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  46 |             setIsCategoryOpen(false);
+  47 |         }
+  48 |         if (itemToEdit) {  react-hooks/set-state-in-effect
+
+/home/hareth/test/totodelivery/src/context/AuthContext.jsx
+   5:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-refresh/only-export-components
+  18:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  16 |         const storedUser = localStorage.getItem('user_role');
+  17 |         if (storedUser) {
+> 18 |             setUser({
+     |             ^^^^^^^ Avoid calling setState() directly within an effect
+  19 |                 role: storedUser,
+  20 |                 username: localStorage.getItem('username') || ''
+  21 |             });  react-hooks/set-state-in-effect
+
+/home/hareth/test/totodelivery/src/hooks/useGeolocation.js
+   30:21  error    Error: Cannot access variable before it is declared
+
+`startTracking` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  28 |                 if (statusResult.status === 'granted') {
+  29 |                     setPermissionStatus('granted');
+> 30 |                     startTracking();
+     |                     ^^^^^^^^^^^^^ `startTracking` accessed before it is declared
+  31 |                     return true;
+  32 |                 }
+  33 |
+
+  61 |     };
+  62 |
+> 63 |     const startTracking = useCallback(() => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 64 |         if (!navigator.geolocation) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 65 |             setError('GPS_NOT_SUPPORTED');
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 88 |         setWatchId(id);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 89 |     }, [options, watchId]);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `startTracking` is declared here
+  90 |
+  91 |     useEffect(() => {
+  92 |         // Lifecycle Sync: Hook into Median library ready event  react-hooks/immutability
+   51:24  error    Error: Cannot access variable before it is declared
+
+`fallbackToWeb` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  49 |             } catch (err) {
+  50 |                 console.error('Median Bridge Error:', err);
+> 51 |                 return fallbackToWeb();
+     |                        ^^^^^^^^^^^^^ `fallbackToWeb` accessed before it is declared
+  52 |             }
+  53 |         } else {
+  54 |             return fallbackToWeb();
+
+  56 |     }, [options, watchId]);
+  57 |
+> 58 |     const fallbackToWeb = async () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 59 |         startTracking();
+     | ^^^^^^^^^^^^^^^^^^^^^^^^
+> 60 |         return true;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^
+> 61 |     };
+     | ^^^^^^^ `fallbackToWeb` is declared here
+  62 |
+  63 |     const startTracking = useCallback(() => {
+  64 |         if (!navigator.geolocation) {                                                                                                                                                                                    react-hooks/immutability
+   56:8   warning  React Hook useCallback has missing dependencies: 'fallbackToWeb' and 'startTracking'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+  114:8   warning  React Hook useEffect has missing dependencies: 'requestLocationSafely' and 'watchId'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+
+/home/hareth/test/totodelivery/src/pages/driver/DriverHome.jsx
+  33:11  error  'isMobile' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      no-unused-vars
+  41:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  39 |         if (gpsError && !geofenceAlertShown) {
+  40 |             alert('We are having trouble locating you. Please set your location manually.');
+> 41 |             setGeofenceAlertShown(true);
+     |             ^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  42 |         }
+  43 |         if (position && !isWithinServiceArea(position.lat, position.lng) && !geofenceAlertShown) {
+  44 |             alert('تنبيه: أنت خارج نطاق الخدمة المعتمد حالياً.');  react-hooks/set-state-in-effect
+
+/home/hareth/test/totodelivery/src/pages/driver/DriverProfile.jsx
+  5:27  error  'Icon' is defined but never used  no-unused-vars
+
+/home/hareth/test/totodelivery/src/pages/market/MarketHome.jsx
+  2:17  error  'useState' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/home/hareth/test/totodelivery/src/pages/market/MarketProfile.jsx
+  72:21  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  70 |
+  71 |     useEffect(() => {
+> 72 |         if (isOpen) setFormData(initialData);
+     |                     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  73 |     }, [isOpen, initialData]);
+  74 |
+  75 |     const showAlert = (title, message, type = 'error') => {  react-hooks/set-state-in-effect
+
+✖ 13 problems (10 errors, 3 warnings)
+

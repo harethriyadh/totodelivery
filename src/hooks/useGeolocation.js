@@ -14,6 +14,43 @@ export const useGeolocation = (options = { enableHighAccuracy: true, timeout: 10
     const isMedian = typeof window !== 'undefined' && (window.median || window.Median);
 
     /**
+     * core: startTracking
+     * Standard web geolocation API backup.
+     */
+    const startTracking = useCallback(() => {
+        if (!navigator.geolocation) {
+            setError('GPS_NOT_SUPPORTED');
+            return;
+        }
+
+        if (watchId) navigator.geolocation.clearWatch(watchId);
+
+        const id = navigator.geolocation.watchPosition(
+            (pos) => {
+                setPosition({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy,
+                    timestamp: pos.timestamp
+                });
+                setError(null);
+                setPermissionStatus('granted');
+            },
+            (err) => {
+                setError(err.code === 1 ? 'PERMISSION_DENIED' : 'GPS_ERROR');
+                if (err.code === 1) setPermissionStatus('denied');
+            },
+            options
+        );
+        setWatchId(id);
+    }, [options, watchId]);
+
+    const fallbackToWeb = useCallback(async () => {
+        startTracking();
+        return true;
+    }, [startTracking]);
+
+    /**
      * core: requestLocationSafely
      * Optimized for Median native wrapper to avoid 'Access Denied' web errors.
      */
@@ -53,40 +90,7 @@ export const useGeolocation = (options = { enableHighAccuracy: true, timeout: 10
         } else {
             return fallbackToWeb();
         }
-    }, [options, watchId]);
-
-    const fallbackToWeb = async () => {
-        startTracking();
-        return true;
-    };
-
-    const startTracking = useCallback(() => {
-        if (!navigator.geolocation) {
-            setError('GPS_NOT_SUPPORTED');
-            return;
-        }
-
-        if (watchId) navigator.geolocation.clearWatch(watchId);
-
-        const id = navigator.geolocation.watchPosition(
-            (pos) => {
-                setPosition({
-                    lat: pos.coords.latitude,
-                    lng: pos.coords.longitude,
-                    accuracy: pos.coords.accuracy,
-                    timestamp: pos.timestamp
-                });
-                setError(null);
-                setPermissionStatus('granted');
-            },
-            (err) => {
-                setError(err.code === 1 ? 'PERMISSION_DENIED' : 'GPS_ERROR');
-                if (err.code === 1) setPermissionStatus('denied');
-            },
-            options
-        );
-        setWatchId(id);
-    }, [options, watchId]);
+    }, [startTracking, fallbackToWeb]);
 
     useEffect(() => {
         // Lifecycle Sync: Hook into Median library ready event

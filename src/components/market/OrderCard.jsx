@@ -70,20 +70,52 @@ const OrderCard = ({ order, onMarkUnavailable }) => {
                 </div>
             </div>
 
-            {/* Items List - Only show availability actions in Preparing mode */}
-            <div className="bg-neutral-50 rounded-xl p-3 mb-4 space-y-2">
+            {/* Items List - Enhanced UI */}
+            <div className="space-y-2.5 mb-5">
+                <div className="flex items-center justify-between mb-1 px-1">
+                    <h5 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">قائمة المنتجات</h5>
+                    <span className="text-[10px] font-black text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">{order.items.length} قطع</span>
+                </div>
                 {order.items.map((item) => (
-                    <div key={item.id} className={clsx("flex justify-between items-center text-xs font-bold", item.unavailable && "opacity-50 line-through")}>
-                        <span className="text-neutral-700">{item.name} x{item.quantity}</span>
+                    <div
+                        key={item.id}
+                        className={clsx(
+                            "group/item relative flex items-center gap-3 p-3 rounded-2xl border transition-all duration-300",
+                            item.unavailable
+                                ? "bg-neutral-50 border-neutral-100 opacity-60"
+                                : "bg-white border-neutral-50 hover:border-primary-100 hover:shadow-sm"
+                        )}
+                    >
+                        <div className={clsx(
+                            "w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black transition-colors",
+                            item.unavailable ? "bg-neutral-200 text-neutral-400" : "bg-neutral-50 text-neutral-700"
+                        )}>
+                            {item.quantity}x
+                        </div>
+
+                        <div className="flex-1">
+                            <p className={clsx(
+                                "font-bold text-sm",
+                                item.unavailable ? "text-neutral-400 line-through" : "text-neutral-900"
+                            )}>
+                                {item.name}
+                            </p>
+                            {item.unavailable && (
+                                <span className="text-[10px] font-black text-red-500 flex items-center gap-1 mt-0.5">
+                                    <XCircle size={10} />
+                                    غير متوفر في المخزن
+                                </span>
+                            )}
+                        </div>
+
                         {status === 'preparing' && !item.unavailable && (
                             <button
                                 onClick={() => onMarkUnavailable(order.id, item.id)}
-                                className="text-[9px] text-red-500 border border-red-100 bg-white px-2 py-0.5 rounded-md hover:bg-red-50"
+                                className="opacity-0 group-hover/item:opacity-100 focus:opacity-100 px-3 py-1.5 rounded-lg bg-red-50 text-red-500 text-[10px] font-black border border-red-100 hover:bg-red-500 hover:text-white transition-all active:scale-95"
                             >
                                 غير متاح
                             </button>
                         )}
-                        {item.unavailable && <span className="text-[9px] text-red-500">غير متوفر</span>}
                     </div>
                 ))}
             </div>

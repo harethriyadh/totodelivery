@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
     LogOut,
     MapPin,
@@ -94,7 +95,7 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <>
             <StatusModal
                 isOpen={alertConfig.open}
@@ -104,19 +105,18 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                 onClose={() => setAlertConfig(prev => ({ ...prev, open: false }))}
             />
 
-            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-300">
-                <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="fixed inset-0 z-[10000] bg-neutral-900/40 backdrop-blur-[8px] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                <div className="bg-white w-full sm:max-w-xl h-[90vh] sm:h-auto sm:max-h-[90vh] rounded-t-[32px] sm:rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col animate-slide-up relative z-[10001]">
 
-                <div className="relative w-full max-w-xl bg-white rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500 max-h-[90vh] flex flex-col">
-
-                    <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between bg-white z-20">
-                        <h3 className="text-lg font-extrabold text-neutral-900">إعدادات الحساب</h3>
-                        <button onClick={onClose} className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center text-neutral-400 active:scale-90 transition-transform">
-                            <X size={20} />
+                    {/* Header - Sticky like AddItemModal */}
+                    <div className="px-6 py-5 border-b border-neutral-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-20">
+                        <h2 className="text-xl font-black text-neutral-900 leading-tight">إعدادات الحساب</h2>
+                        <button onClick={onClose} className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center text-neutral-400 hover:bg-neutral-100 transition-all hover:rotate-90 active:scale-90">
+                            <X className="w-5 h-5" />
                         </button>
                     </div>
 
-                    <div className="p-6 overflow-y-auto space-y-5 flex-1">
+                    <div className="flex-1 overflow-y-auto p-8 space-y-8">
                         {/* MAP UI SECTION */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-end gap-2">
@@ -125,7 +125,6 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                             </div>
 
                             <div className="h-56 rounded-[24px] overflow-hidden border border-neutral-100 relative group bg-neutral-50 shadow-inner">
-                                {/* Fixed Label: Centered top to prevent Zoom Button overlap */}
                                 <div className="absolute top-4 inset-x-0 z-[50] flex justify-center px-12 pointer-events-none">
                                     <div className="bg-white/95 backdrop-blur-md border border-neutral-200/50 px-4 py-2 rounded-xl shadow-xl shadow-black/5">
                                         <span className="text-[10px] font-black text-neutral-800 whitespace-nowrap">
@@ -145,9 +144,9 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                             </div>
                         </div>
 
-                        {/* Input Fields */}
-                        <div className="grid grid-cols-1 gap-4">
-                            <div className="space-y-1 text-right">
+                        {/* Input Fields - Styled like AddItemModal */}
+                        <div className="grid grid-cols-1 gap-6">
+                            <div className="space-y-2 text-right">
                                 <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mr-1">اسم صاحب المتجر</label>
                                 <div className="relative group">
                                     <User className="absolute right-5 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-primary-500 transition-colors w-5 h-5" />
@@ -155,14 +154,14 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                                         type="text"
                                         value={formData.ownerName}
                                         onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-                                        className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-3.5 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right"
+                                        className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-4 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all text-right"
                                         dir="rtl"
                                     />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-1 text-right">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div className="space-y-2 text-right">
                                     <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mr-1">رقم الهاتف</label>
                                     <div className="relative group">
                                         <Phone className="absolute right-5 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-primary-500 transition-colors w-5 h-5" />
@@ -170,11 +169,11 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                                             type="tel"
                                             value={formData.phone1}
                                             onChange={(e) => setFormData({ ...formData, phone1: e.target.value })}
-                                            className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-3.5 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right"
+                                            className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-4 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all text-right"
                                         />
                                     </div>
                                 </div>
-                                <div className="space-y-1 text-right">
+                                <div className="space-y-2 text-right">
                                     <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mr-1">عنوان المتجر</label>
                                     <div className="relative group">
                                         <MapPin className="absolute right-5 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-primary-500 transition-colors w-5 h-5" />
@@ -182,7 +181,7 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                                             type="text"
                                             value={formData.address}
                                             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                            className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-3.5 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white transition-all text-right"
+                                            className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pr-14 pl-5 py-4 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all text-right"
                                             dir="rtl"
                                         />
                                     </div>
@@ -191,25 +190,26 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                         </div>
                     </div>
 
-                    {/* Modal Actions */}
-                    <div className="p-6 border-t border-neutral-100 flex flex-col sm:flex-row gap-3 bg-white">
+                    {/* Modal Actions - Sticky bottom like AddItemModal */}
+                    <div className="p-8 bg-white border-t border-neutral-100 sticky bottom-0 z-20 flex flex-col sm:flex-row gap-3">
                         <button
                             onClick={handleSave}
-                            className="flex-[2] order-1 sm:order-2 py-4 rounded-2xl bg-primary-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-primary-500/20 active:scale-[0.98] transition-all"
+                            className="flex-[2] order-1 sm:order-2 py-5 rounded-[50px] bg-primary-500 text-white font-black text-lg flex items-center justify-center gap-3 shadow-[0_15px_30px_rgba(73,160,109,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all"
                         >
-                            <Save size={18} />
+                            <Save size={20} />
                             حفظ التغييرات
                         </button>
                         <button
                             onClick={onClose}
-                            className="flex-1 order-2 sm:order-1 py-4 rounded-2xl bg-neutral-100 text-neutral-500 font-bold text-sm active:scale-[0.98] transition-all"
+                            className="flex-1 order-2 sm:order-1 py-5 rounded-[50px] bg-neutral-100 text-neutral-500 font-bold text-sm active:scale-[0.98] transition-all"
                         >
                             إلغاء
                         </button>
                     </div>
                 </div>
             </div>
-        </>
+        </>,
+        document.body
     );
 };
 
