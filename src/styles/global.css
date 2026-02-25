@@ -228,12 +228,12 @@ main.viewport-scroll {
 /* Map Control Customization */
 .leaflet-control-zoom {
     border: none !important;
-    margin-bottom: 90px !important;
+    margin-bottom: 20px !important;
     margin-right: 20px !important;
     box-shadow: var(--shadow-card) !important;
 }
 
-.leaflet-control-zoom-in, 
+.leaflet-control-zoom-in,
 .leaflet-control-zoom-out {
     background-color: white !important;
     color: var(--neutral-800) !important;

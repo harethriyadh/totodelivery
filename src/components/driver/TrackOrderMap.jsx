@@ -9,14 +9,31 @@ import { fetchOSRMRoute } from '../../utils/mapUtils';
 /**
  * Bounds Manager
  */
-function MapEffectsManager({ points, zoom = 16 }) {
+function MapEffectsManager({ points, zoom = 16, active = true }) {
     const map = useMap();
+    const lastPointsRef = useRef('');
+
     useEffect(() => {
-        if (points && points.length > 1) {
+        if (!active || !points || points.length < 1) return;
+
+        // Create a unique key for the points to avoid redundant fits
+        const pointsKey = JSON.stringify(points);
+        if (pointsKey === lastPointsRef.current) return;
+        lastPointsRef.current = pointsKey;
+
+        // Skip fitting if it's basically just one point repeated (likely selecting a single location)
+        if (points.length === 2 && JSON.stringify(points[0]) === JSON.stringify(points[1])) {
+            map.setView(points[0], map.getZoom() || zoom);
+            return;
+        }
+
+        if (points.length > 1) {
             const bounds = L.latLngBounds(points);
             map.fitBounds(bounds, { padding: [60, 60], maxZoom: zoom });
+        } else if (points.length === 1) {
+            map.setView(points[0], map.getZoom() || zoom);
         }
-    }, [points, map, zoom]);
+    }, [points, map, zoom, active]);
     return null;
 }
 
@@ -112,8 +129,22 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
         return () => clearInterval(interval);
     }, [step, pickupPos, deliveryPos, currentPos]);
 
+    // Memoize points to prevent re-creation on every render
+    const mapPoints = useMemo(() => {
+        if (routePoints.length > 0) return routePoints;
+        if (currentPos && pickupPos && step === 'PICKUP') return [currentPos, pickupPos];
+        if (currentPos && deliveryPos && step === 'DELIVERY') return [currentPos, deliveryPos];
+        if (currentPos) return [currentPos];
+        return [];
+    }, [routePoints, currentPos, pickupPos, deliveryPos, step]);
+
     return (
-        <div className="h-full w-full relative bg-[#f8f9fa] overflow-hidden">
+        <div
+            className="h-full w-full relative bg-[#f8f9fa] overflow-hidden"
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+        >
             {/* GPS Health / Permission Error Badge */}
             {(gpsError || gpsPermission === 'denied') && (
                 <div className="absolute top-4 left-4 right-4 z-[500] bg-red-50 p-4 rounded-2xl border border-red-100 flex items-center gap-3 shadow-lg animate-in slide-in-from-top duration-500">
@@ -136,6 +167,8 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
                 scrollWheelZoom={true}
                 doubleClickZoom={true}
                 touchZoom={true}
+                dragging={true}
+                tap={false} // Helps with mobile clicks
             >
                 <ZoomControl position="bottomright" />
                 <TileLayer
@@ -194,7 +227,7 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
                 )}
 
                 <MapEvents />
-                <MapEffectsManager points={routePoints.length > 0 ? routePoints : [currentPos, step === 'PICKUP' ? pickupPos : deliveryPos]} />
+                <MapEffectsManager points={mapPoints} />
 
                 {/* Map Action Overlays (Connected to Map Logic) */}
                 {showRecenter && <RecenterAction pos={currentPos || pickupPos} />}
