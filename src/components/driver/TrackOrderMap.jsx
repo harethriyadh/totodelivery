@@ -2,8 +2,9 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polyline, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Store, User, Navigation, AlertCircle, SignalHigh, SignalLow } from 'lucide-react';
+import { Store, User, Navigation, AlertCircle, SignalHigh, SignalLow, LocateFixed } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { clsx } from 'clsx';
 import { fetchOSRMRoute } from '../../utils/mapUtils';
 import { MAP_CONFIG } from '../../config/mapConfig';
 
@@ -61,6 +62,7 @@ function RecenterAction({ pos }) {
     );
 }
 
+
 const TrackOrderMap = ({
     pickupPos,
     deliveryPos,
@@ -71,6 +73,8 @@ const TrackOrderMap = ({
     onMapClick,
     navLabel,
     showRecenter = MAP_CONFIG.controls.showRecenter,
+    showLocateMe = false,
+    showRoute = true,
     // Unified Control & Zoom Settings (Defaults from MAP_CONFIG)
     dragging = MAP_CONFIG.gestures.dragging,
     scrollWheelZoom = MAP_CONFIG.gestures.scrollWheelZoom,
@@ -151,6 +155,7 @@ const TrackOrderMap = ({
     const customerIcon = createCustomIcon(<User />, '#3B82F6');
 
     useEffect(() => {
+        if (!showRoute) return;
         const throttleTime = MAP_CONFIG.logic.routeThrottleMs;
         const now = Date.now();
         const updateRoute = async () => {
@@ -240,7 +245,7 @@ const TrackOrderMap = ({
                     maxZoom={maxZoom}
                 />
 
-                {routePoints.length > 1 && (
+                {showRoute && routePoints.length > 1 && (
                     <>
                         <Polyline positions={routePoints} pathOptions={{ color: '#49A06D', weight: 12, opacity: 0.1 }} />
                         <Polyline
@@ -290,19 +295,21 @@ const TrackOrderMap = ({
                 )}
 
                 <MapEvents />
-                <MapEffectsManager points={mapPoints} isInteracting={isInteracting} zoom={defaultZoom} />
+                <MapEffectsManager points={mapPoints} isInteracting={isInteracting} zoom={defaultZoom} active={showRoute} />
 
                 {showRecenter && <RecenterAction pos={currentPos || pickupPos} />}
             </MapContainer>
 
-            <div className="absolute top-4 right-4 z-[400] px-4 py-2 bg-white/95 backdrop-blur-md rounded-2xl border border-neutral-200 shadow-xl flex items-center gap-3">
-                <div className="flex items-center gap-1.5 grayscale-[0.2]">
-                    {gpsError ? <SignalLow className="w-4 h-4 text-red-500" /> : <SignalHigh className="w-4 h-4 text-green-500" />}
+            {showRoute && (
+                <div className="absolute top-4 right-4 z-[400] px-4 py-2 bg-white/95 backdrop-blur-md rounded-2xl border border-neutral-200 shadow-xl flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 grayscale-[0.2]">
+                        {gpsError ? <SignalLow className="w-4 h-4 text-red-500" /> : <SignalHigh className="w-4 h-4 text-green-500" />}
+                    </div>
+                    <span className="text-[11px] font-black text-neutral-800 uppercase tracking-tighter">
+                        {navLabel || (step === 'PICKUP' ? 'ملاحة: المتجر' : 'ملاحة: العميل')}
+                    </span>
                 </div>
-                <span className="text-[11px] font-black text-neutral-800 uppercase tracking-tighter">
-                    {navLabel || (step === 'PICKUP' ? 'ملاحة: المتجر' : 'ملاحة: العميل')}
-                </span>
-            </div>
+            )}
         </div>
     );
 };
