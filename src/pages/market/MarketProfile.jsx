@@ -75,30 +75,6 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
         if (isOpen) setFormData(initialData);
     }, [isOpen, initialData]);
 
-    // Fix: Block event bubbling and force focus on map gestures
-    useEffect(() => {
-        const handleMapGestures = (e) => {
-            if (mapContainerRef.current && mapContainerRef.current.contains(e.target)) {
-                // This prevents the parent scrollable modal from moving while interacting with map
-                e.stopPropagation();
-            }
-        };
-
-        const mapEl = mapContainerRef.current;
-        if (mapEl && isOpen) {
-            mapEl.addEventListener('touchstart', handleMapGestures, { passive: false });
-            mapEl.addEventListener('touchmove', handleMapGestures, { passive: false });
-            mapEl.addEventListener('wheel', handleMapGestures, { passive: false });
-        }
-
-        return () => {
-            if (mapEl) {
-                mapEl.removeEventListener('touchstart', handleMapGestures);
-                mapEl.removeEventListener('touchmove', handleMapGestures);
-                mapEl.removeEventListener('wheel', handleMapGestures);
-            }
-        };
-    }, [isOpen]);
 
     const showAlert = (title, message, type = 'error') => {
         setAlertConfig({ open: true, title, message, type });
@@ -155,7 +131,6 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                             <div
                                 ref={mapContainerRef}
                                 className="h-80 min-h-[40vh] w-full rounded-[24px] overflow-hidden border border-neutral-100 relative group bg-neutral-50 shadow-inner"
-                                style={{ touchAction: 'none' }} // Fix: stops the wrapper from zooming the browser on single-finger swipe
                             >
                                 <div className="absolute top-4 inset-x-0 z-[50] flex justify-center px-12 pointer-events-none">
                                     <div className="bg-white/95 backdrop-blur-md border border-neutral-200/50 px-4 py-2 rounded-xl shadow-xl shadow-black/5">
@@ -172,12 +147,10 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                                     onMapClick={handleLocationSelect}
                                     navLabel={null}
                                     showRecenter={false}
-                                    // Fix: Passing explicit control props to ensure internal map logic respects gestures
                                     dragging={true}
-                                    zoomControl={true}
-                                    scrollWheelZoom={true}
-                                    doubleClickZoom={false}
                                     touchZoom={true}
+                                    scrollWheelZoom={true}
+                                    doubleClickZoom={true}
                                 />
                             </div>
                         </div>

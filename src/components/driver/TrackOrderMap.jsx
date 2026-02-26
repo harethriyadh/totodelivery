@@ -72,7 +72,7 @@ const TrackOrderMap = ({
     showRecenter = true,
     // Gesture Control Props
     dragging = true,
-    scrollWheelZoom = false,
+    scrollWheelZoom = true,
     doubleClickZoom = true,
     touchZoom = true
 }) => {
@@ -84,9 +84,10 @@ const TrackOrderMap = ({
     // Helper to handle interaction state more cleanly
     const setInteraction = (state) => {
         if (interactionTimeout.current) clearTimeout(interactionTimeout.current);
-        setIsInteracting(state);
-        if (!state) {
-            // Wait 3 seconds after touch ends before allowing automated bounds fitting again
+        if (state) {
+            setIsInteracting(true);
+        } else {
+            // Keep it true for 3 seconds after interaction ends to prevent auto-jump
             interactionTimeout.current = setTimeout(() => setIsInteracting(false), 3000);
         }
     };
@@ -97,9 +98,9 @@ const TrackOrderMap = ({
             dragend: () => setInteraction(false),
             zoomstart: () => setInteraction(true),
             zoomend: () => setInteraction(false),
+            // Double down on move events
             movestart: () => setInteraction(true),
-            touchstart: () => setInteraction(true),
-            touchend: () => setInteraction(false),
+            moveend: () => setInteraction(false),
             click: (e) => {
                 if (onMapClick) {
                     onMapClick([e.latlng.lat, e.latlng.lng]);
@@ -152,7 +153,10 @@ const TrackOrderMap = ({
             updateRoute();
         }
         const interval = setInterval(updateRoute, throttleTime);
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            if (interactionTimeout.current) clearTimeout(interactionTimeout.current);
+        };
     }, [step, pickupPos, deliveryPos, currentPos]);
 
     const mapPoints = useMemo(() => {
@@ -166,14 +170,16 @@ const TrackOrderMap = ({
     return (
         <div
             className="h-full w-full relative bg-[#f8f9fa] overflow-hidden"
-            /* FIX: "pan-x pan-y" tells the browser the map handles its own movements, 
-               preventing the "one finger zoom" bug often seen in app wrappers.
-            */
-            style={{ touchAction: 'pan-x pan-y' }}
+            style={{ touchAction: 'none' }}
             onTouchStart={(e) => {
                 setInteraction(true);
                 e.stopPropagation();
             }}
+            onTouchMove={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerMove={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
         >
             {(gpsError || gpsPermission === 'denied') && (
                 <div className="absolute top-4 left-4 right-4 z-[500] bg-red-50 p-4 rounded-2xl border border-red-100 flex items-center gap-3 shadow-lg">
@@ -193,14 +199,21 @@ const TrackOrderMap = ({
                 style={{ height: '100%', width: '100%' }}
                 zoomControl={false}
                 attributionControl={false}
+                preferCanvas={false}
+                whenReady={(e) => {
+                    setTimeout(() => {
+                        e.target.invalidateSize();
+                    }, 500);
+                }}
                 /* GESTURE STABILIZATION:
                    - tap: false (Crucial for mobile browsers to prevent the 300ms delay and ghost zooms)
                 */
                 scrollWheelZoom={scrollWheelZoom}
                 doubleClickZoom={doubleClickZoom}
-                touchZoom={touchZoom}
-                dragging={dragging}
-                tap={false}
+                touchZoom={true}
+                dragging={true}
+                tap={true}
+                inertia={true}
                 bounceAtZoomLimits={true}
             >
                 <ZoomControl position="bottomright" />
