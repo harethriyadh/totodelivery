@@ -12,7 +12,7 @@ import {
     Navigation,
     LocateFixed,
     AlertCircle,
-    CheckCircle2
+    CheckCircle
 } from 'lucide-react';
 import TrackOrderMap from '../../components/driver/TrackOrderMap';
 import { useAuth } from '../../context/AuthContext';
@@ -32,7 +32,7 @@ const StatusModal = ({ isOpen, onClose, title, message, type = 'error', onConfir
             <div className="relative w-full max-w-sm bg-white rounded-[32px] p-8 shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${type === 'error' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-500'
                     }`}>
-                    {type === 'error' ? <AlertCircle size={32} /> : <CheckCircle2 size={32} />}
+                    {type === 'error' ? <AlertCircle size={32} /> : <CheckCircle size={32} />}
                 </div>
 
                 <h3 className="text-xl font-black text-neutral-900 mb-2">{title}</h3>

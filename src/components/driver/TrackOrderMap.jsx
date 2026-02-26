@@ -63,6 +63,8 @@ function RecenterAction({ pos }) {
 
 const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gpsPermission, onMapClick, navLabel, showRecenter = true }) => {
     const [isInteracting, setIsInteracting] = useState(false);
+    const [routePoints, setRoutePoints] = useState([]);
+    const lastRouteRequest = useRef(0);
 
     // Map Click & Interaction Listeners
     function MapEvents() {
