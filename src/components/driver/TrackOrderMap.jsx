@@ -9,12 +9,13 @@ import { fetchOSRMRoute } from '../../utils/mapUtils';
 /**
  * Bounds Manager
  */
-function MapEffectsManager({ points, zoom = 16, active = true }) {
+function MapEffectsManager({ points, zoom = 16, active = true, isInteracting }) {
     const map = useMap();
     const lastPointsRef = useRef('');
 
     useEffect(() => {
-        if (!active || !points || points.length < 1) return;
+        // Stop any automated movement if the user is currently interacting with the map
+        if (!active || isInteracting || !points || points.length < 1) return;
 
         // Create a unique key for the points to avoid redundant fits
         const pointsKey = JSON.stringify(points);
@@ -33,7 +34,7 @@ function MapEffectsManager({ points, zoom = 16, active = true }) {
         } else if (points.length === 1) {
             map.setView(points[0], map.getZoom() || zoom);
         }
-    }, [points, map, zoom, active]);
+    }, [points, map, zoom, active, isInteracting]);
     return null;
 }
 
@@ -61,12 +62,21 @@ function RecenterAction({ pos }) {
 }
 
 const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gpsPermission, onMapClick, navLabel, showRecenter = true }) => {
-    const [routePoints, setRoutePoints] = useState([]);
-    const lastRouteRequest = useRef(0);
+    const [isInteracting, setIsInteracting] = useState(false);
 
-    // Map Click Listener Component
+    // Map Click & Interaction Listeners
     function MapEvents() {
         useMapEvents({
+            dragstart: () => setIsInteracting(true),
+            dragend: () => {
+                // Delay resuming automated effects to allow smooth transitions
+                setTimeout(() => setIsInteracting(false), 2000);
+            },
+            zoomstart: () => setIsInteracting(true),
+            zoomend: () => {
+                setTimeout(() => setIsInteracting(false), 2000);
+            },
+            touchstart: () => setIsInteracting(true),
             click: (e) => {
                 if (onMapClick) {
                     onMapClick([e.latlng.lat, e.latlng.lng]);
@@ -141,7 +151,11 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
     return (
         <div
             className="h-full w-full relative bg-[#f8f9fa] overflow-hidden"
-            onTouchStart={(e) => e.stopPropagation()}
+            style={{ touchAction: 'none' }} // Critical: Prevents parent scrolling conflicts
+            onTouchStart={(e) => {
+                setIsInteracting(true);
+                e.stopPropagation();
+            }}
             onTouchMove={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
         >
@@ -164,11 +178,12 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
                 style={{ height: '100%', width: '100%' }}
                 zoomControl={false}
                 attributionControl={false}
-                scrollWheelZoom={true}
+                scrollWheelZoom={false} // Prevents "single-finger zoom" if swiped fast on some devices
                 doubleClickZoom={true}
-                touchZoom={true}
-                dragging={true}
-                tap={false} // Helps with mobile clicks
+                touchZoom={true} // standard two-finger pinch
+                dragging={true} // allows standard panning
+                tap={false} // Helps with mobile click delay & accidental zooms
+                bounceAtZoomLimits={false} // Prevents jittering at min/max zoom
             >
                 <ZoomControl position="bottomright" />
                 <TileLayer
@@ -227,7 +242,7 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
                 )}
 
                 <MapEvents />
-                <MapEffectsManager points={mapPoints} />
+                <MapEffectsManager points={mapPoints} isInteracting={isInteracting} />
 
                 {/* Map Action Overlays (Connected to Map Logic) */}
                 {showRecenter && <RecenterAction pos={currentPos || pickupPos} />}
