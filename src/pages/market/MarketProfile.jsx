@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
     LogOut,
@@ -68,9 +68,37 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
     const [formData, setFormData] = useState(initialData);
     const [alertConfig, setAlertConfig] = useState({ open: false, title: '', message: '', type: 'error' });
 
+    // Fix: Ref to capture the map container to isolate gestures from the wrapper
+    const mapContainerRef = useRef(null);
+
     useEffect(() => {
         if (isOpen) setFormData(initialData);
     }, [isOpen, initialData]);
+
+    // Fix: Block event bubbling and force focus on map gestures
+    useEffect(() => {
+        const handleMapGestures = (e) => {
+            if (mapContainerRef.current && mapContainerRef.current.contains(e.target)) {
+                // This prevents the parent scrollable modal from moving while interacting with map
+                e.stopPropagation();
+            }
+        };
+
+        const mapEl = mapContainerRef.current;
+        if (mapEl && isOpen) {
+            mapEl.addEventListener('touchstart', handleMapGestures, { passive: false });
+            mapEl.addEventListener('touchmove', handleMapGestures, { passive: false });
+            mapEl.addEventListener('wheel', handleMapGestures, { passive: false });
+        }
+
+        return () => {
+            if (mapEl) {
+                mapEl.removeEventListener('touchstart', handleMapGestures);
+                mapEl.removeEventListener('touchmove', handleMapGestures);
+                mapEl.removeEventListener('wheel', handleMapGestures);
+            }
+        };
+    }, [isOpen]);
 
     const showAlert = (title, message, type = 'error') => {
         setAlertConfig({ open: true, title, message, type });
@@ -108,7 +136,7 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
             <div className="fixed inset-0 z-[10000] bg-neutral-900/40 backdrop-blur-[8px] flex items-end sm:items-center justify-center p-0 sm:p-4">
                 <div className="bg-white w-full sm:max-w-xl h-[90vh] sm:h-auto sm:max-h-[90vh] rounded-t-[32px] sm:rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col animate-slide-up relative z-[10001]">
 
-                    {/* Header - Sticky like AddItemModal */}
+                    {/* Header */}
                     <div className="px-6 py-5 border-b border-neutral-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-20">
                         <h2 className="text-xl font-black text-neutral-900 leading-tight">إعدادات الحساب</h2>
                         <button onClick={onClose} className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center text-neutral-400 hover:bg-neutral-100 transition-all hover:rotate-90 active:scale-90">
@@ -124,7 +152,11 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                                 <div className="w-1.5 h-1.5 rounded-full bg-primary-500" />
                             </div>
 
-                            <div className="h-56 rounded-[24px] overflow-hidden border border-neutral-100 relative group bg-neutral-50 shadow-inner">
+                            <div
+                                ref={mapContainerRef}
+                                className="h-56 rounded-[24px] overflow-hidden border border-neutral-100 relative group bg-neutral-50 shadow-inner"
+                                style={{ touchAction: 'none' }} // Fix: stops the wrapper from zooming the browser on single-finger swipe
+                            >
                                 <div className="absolute top-4 inset-x-0 z-[50] flex justify-center px-12 pointer-events-none">
                                     <div className="bg-white/95 backdrop-blur-md border border-neutral-200/50 px-4 py-2 rounded-xl shadow-xl shadow-black/5">
                                         <span className="text-[10px] font-black text-neutral-800 whitespace-nowrap">
@@ -140,11 +172,17 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                                     onMapClick={handleLocationSelect}
                                     navLabel={null}
                                     showRecenter={false}
+                                    // Fix: Passing explicit control props to ensure internal map logic respects gestures
+                                    dragging={true}
+                                    zoomControl={true}
+                                    scrollWheelZoom={true}
+                                    doubleClickZoom={false}
+                                    touchZoom={true}
                                 />
                             </div>
                         </div>
 
-                        {/* Input Fields - Styled like AddItemModal */}
+                        {/* Input Fields */}
                         <div className="grid grid-cols-1 gap-6">
                             <div className="space-y-2 text-right">
                                 <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mr-1">اسم صاحب المتجر</label>
@@ -190,7 +228,7 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                         </div>
                     </div>
 
-                    {/* Modal Actions - Sticky bottom like AddItemModal */}
+                    {/* Modal Actions */}
                     <div className="p-8 bg-white border-t border-neutral-100 sticky bottom-0 z-20 flex flex-col sm:flex-row gap-3">
                         <button
                             onClick={handleSave}
