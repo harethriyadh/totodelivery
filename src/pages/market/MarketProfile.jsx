@@ -144,7 +144,7 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                    <div className="flex-1 overflow-y-auto px-5 py-8 space-y-8">
                         {/* MAP UI SECTION */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-end gap-2">
@@ -154,7 +154,7 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
 
                             <div
                                 ref={mapContainerRef}
-                                className="h-56 rounded-[24px] overflow-hidden border border-neutral-100 relative group bg-neutral-50 shadow-inner"
+                                className="h-80 min-h-[40vh] w-full rounded-[24px] overflow-hidden border border-neutral-100 relative group bg-neutral-50 shadow-inner"
                                 style={{ touchAction: 'none' }} // Fix: stops the wrapper from zooming the browser on single-finger swipe
                             >
                                 <div className="absolute top-4 inset-x-0 z-[50] flex justify-center px-12 pointer-events-none">
@@ -229,7 +229,7 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                     </div>
 
                     {/* Modal Actions */}
-                    <div className="p-8 bg-white border-t border-neutral-100 sticky bottom-0 z-20 flex flex-col sm:flex-row gap-3">
+                    <div className="px-5 py-8 bg-white border-t border-neutral-100 sticky bottom-0 z-20 flex flex-col sm:flex-row gap-3">
                         <button
                             onClick={handleSave}
                             className="flex-[2] order-1 sm:order-2 py-5 rounded-[50px] bg-primary-500 text-white font-black text-lg flex items-center justify-center gap-3 shadow-[0_15px_30px_rgba(73,160,109,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all"

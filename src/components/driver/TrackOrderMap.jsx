@@ -60,7 +60,22 @@ function RecenterAction({ pos }) {
     );
 }
 
-const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gpsPermission, onMapClick, navLabel, showRecenter = true }) => {
+const TrackOrderMap = ({
+    pickupPos,
+    deliveryPos,
+    currentPos,
+    step,
+    gpsError,
+    gpsPermission,
+    onMapClick,
+    navLabel,
+    showRecenter = true,
+    // Gesture Control Props
+    dragging = true,
+    scrollWheelZoom = false,
+    doubleClickZoom = true,
+    touchZoom = true
+}) => {
     const [isInteracting, setIsInteracting] = useState(false);
     const [routePoints, setRoutePoints] = useState([]);
     const lastRouteRequest = useRef(0);
@@ -179,14 +194,12 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
                 zoomControl={false}
                 attributionControl={false}
                 /* GESTURE STABILIZATION:
-                   - scrollWheelZoom: false (Prevents desktop-style mouse wheel zoom issues)
-                   - dragging: true (Standard 1-finger panning)
                    - tap: false (Crucial for mobile browsers to prevent the 300ms delay and ghost zooms)
                 */
-                scrollWheelZoom={false}
-                doubleClickZoom={true}
-                touchZoom={true}
-                dragging={true}
+                scrollWheelZoom={scrollWheelZoom}
+                doubleClickZoom={doubleClickZoom}
+                touchZoom={touchZoom}
+                dragging={dragging}
                 tap={false}
                 bounceAtZoomLimits={true}
             >
