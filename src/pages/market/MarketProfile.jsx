@@ -17,10 +17,10 @@ import {
 import TrackOrderMap from '../../components/driver/TrackOrderMap';
 import { useAuth } from '../../context/AuthContext';
 import { SERVICE_AREA, isWithinServiceArea } from '../../utils/geofencing';
+import { MAP_CONFIG } from '../../config/mapConfig';
 
 /**
  * Professional Status Modal
- * Replaces browser alerts with the design from your reference image
  */
 const StatusModal = ({ isOpen, onClose, title, message, type = 'error', onConfirm }) => {
     if (!isOpen) return null;
@@ -28,33 +28,21 @@ const StatusModal = ({ isOpen, onClose, title, message, type = 'error', onConfir
     return (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 animate-in fade-in duration-200">
             <div className="absolute inset-0 bg-neutral-900/40 backdrop-blur-[2px]" onClick={onClose} />
-
             <div className="relative w-full max-w-sm bg-white rounded-[32px] p-8 shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${type === 'error' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-500'
-                    }`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${type === 'error' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-500'}`}>
                     {type === 'error' ? <AlertCircle size={32} /> : <CheckCircle size={32} />}
                 </div>
-
                 <h3 className="text-xl font-black text-neutral-900 mb-2">{title}</h3>
-                <p className="text-neutral-500 font-bold text-sm leading-relaxed mb-8">
-                    {message}
-                </p>
-
+                <p className="text-neutral-500 font-bold text-sm leading-relaxed mb-8">{message}</p>
                 <div className="flex gap-3 w-full">
                     <button
                         onClick={onConfirm || onClose}
-                        className={`flex-1 py-4 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-lg ${type === 'error'
-                            ? 'bg-red-500 text-white shadow-red-500/20'
-                            : 'bg-primary-500 text-white shadow-primary-500/20'
-                            }`}
+                        className={`flex-1 py-4 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-lg ${type === 'error' ? 'bg-red-500 text-white shadow-red-500/20' : 'bg-primary-500 text-white shadow-primary-500/20'}`}
                     >
                         {type === 'error' ? 'موافق' : 'تم'}
                     </button>
                     {onConfirm && (
-                        <button
-                            onClick={onClose}
-                            className="flex-1 py-4 rounded-2xl bg-neutral-100 text-neutral-500 font-bold text-sm active:scale-95"
-                        >
+                        <button onClick={onClose} className="flex-1 py-4 rounded-2xl bg-neutral-100 text-neutral-500 font-bold text-sm active:scale-95">
                             إلغاء
                         </button>
                     )}
@@ -68,13 +56,12 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
     const [formData, setFormData] = useState(initialData);
     const [alertConfig, setAlertConfig] = useState({ open: false, title: '', message: '', type: 'error' });
 
-    // Fix: Ref to capture the map container to isolate gestures from the wrapper
+    // FIX: Ref to isolate the map container from the app wrapper's gestures
     const mapContainerRef = useRef(null);
 
     useEffect(() => {
         if (isOpen) setFormData(initialData);
     }, [isOpen, initialData]);
-
 
     const showAlert = (title, message, type = 'error') => {
         setAlertConfig({ open: true, title, message, type });
@@ -121,7 +108,6 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                     </div>
 
                     <div className="flex-1 overflow-y-auto px-5 py-8 space-y-8">
-                        {/* MAP UI SECTION */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-end gap-2">
                                 <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">تحديد موقع المتجر</span>
@@ -131,6 +117,7 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                             <div
                                 ref={mapContainerRef}
                                 className="h-80 min-h-[40vh] w-full rounded-[24px] overflow-hidden border border-neutral-100 relative group bg-neutral-50 shadow-inner"
+                                style={{ touchAction: 'none' }} // CRITICAL: Tells browser the map handles all gestures
                             >
                                 <div className="absolute top-4 inset-x-0 z-[50] flex justify-center px-12 pointer-events-none">
                                     <div className="bg-white/95 backdrop-blur-md border border-neutral-200/50 px-4 py-2 rounded-xl shadow-xl shadow-black/5">
@@ -147,15 +134,12 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                                     onMapClick={handleLocationSelect}
                                     navLabel={null}
                                     showRecenter={false}
-                                    dragging={true}
-                                    touchZoom={true}
-                                    scrollWheelZoom={true}
-                                    doubleClickZoom={true}
+                                    doubleClickZoom={false} // Disable double-tap zoom to prevent single-finger browsing errors
+                                    defaultZoom={MAP_CONFIG.zoom.editProfile}
                                 />
                             </div>
                         </div>
 
-                        {/* Input Fields */}
                         <div className="grid grid-cols-1 gap-6">
                             <div className="space-y-2 text-right">
                                 <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mr-1">اسم صاحب المتجر</label>
@@ -201,7 +185,6 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                         </div>
                     </div>
 
-                    {/* Modal Actions */}
                     <div className="px-5 py-8 bg-white border-t border-neutral-100 sticky bottom-0 z-20 flex flex-col sm:flex-row gap-3">
                         <button
                             onClick={handleSave}

@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { Store, User, Navigation, AlertCircle, SignalHigh, SignalLow } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { fetchOSRMRoute } from '../../utils/mapUtils';
+import { MAP_CONFIG } from '../../config/mapConfig';
 
 /**
  * Bounds Manager
@@ -69,12 +70,20 @@ const TrackOrderMap = ({
     gpsPermission,
     onMapClick,
     navLabel,
-    showRecenter = true,
-    // Gesture Control Props
-    dragging = true,
-    scrollWheelZoom = true,
-    doubleClickZoom = true,
-    touchZoom = true
+    showRecenter = MAP_CONFIG.controls.showRecenter,
+    // Unified Control & Zoom Settings (Defaults from MAP_CONFIG)
+    dragging = MAP_CONFIG.gestures.dragging,
+    scrollWheelZoom = MAP_CONFIG.gestures.scrollWheelZoom,
+    doubleClickZoom = MAP_CONFIG.gestures.doubleClickZoom,
+    touchZoom = MAP_CONFIG.gestures.touchZoom,
+    zoomControl = MAP_CONFIG.controls.zoomControl,
+    zoomControlPosition = MAP_CONFIG.controls.zoomControlPosition,
+    minZoom = MAP_CONFIG.zoom.min,
+    maxZoom = MAP_CONFIG.zoom.max,
+    defaultZoom = MAP_CONFIG.zoom.default,
+    boxZoom = MAP_CONFIG.gestures.boxZoom,
+    keyboard = MAP_CONFIG.gestures.keyboard,
+    animate = MAP_CONFIG.animation.animate
 }) => {
     const [isInteracting, setIsInteracting] = useState(false);
     const [routePoints, setRoutePoints] = useState([]);
@@ -87,8 +96,8 @@ const TrackOrderMap = ({
         if (state) {
             setIsInteracting(true);
         } else {
-            // Keep it true for 3 seconds after interaction ends to prevent auto-jump
-            interactionTimeout.current = setTimeout(() => setIsInteracting(false), 3000);
+            // Keep it true for a buffer period after interaction ends to prevent auto-jump
+            interactionTimeout.current = setTimeout(() => setIsInteracting(false), MAP_CONFIG.logic.interactionBufferMs);
         }
     };
 
@@ -98,6 +107,10 @@ const TrackOrderMap = ({
             dragend: () => setInteraction(false),
             zoomstart: () => setInteraction(true),
             zoomend: () => setInteraction(false),
+            mousedown: () => setInteraction(true),
+            mouseup: () => setInteraction(false),
+            touchstart: () => setInteraction(true),
+            touchend: () => setInteraction(false),
             // Double down on move events
             movestart: () => setInteraction(true),
             moveend: () => setInteraction(false),
@@ -138,7 +151,7 @@ const TrackOrderMap = ({
     const customerIcon = createCustomIcon(<User />, '#3B82F6');
 
     useEffect(() => {
-        const throttleTime = 20000;
+        const throttleTime = MAP_CONFIG.logic.routeThrottleMs;
         const now = Date.now();
         const updateRoute = async () => {
             const destination = step === 'PICKUP' ? pickupPos : deliveryPos;
@@ -170,16 +183,17 @@ const TrackOrderMap = ({
     return (
         <div
             className="h-full w-full relative bg-[#f8f9fa] overflow-hidden"
-            style={{ touchAction: 'none' }}
+            style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
             onTouchStart={(e) => {
+                setInteraction(true);
+                // We stop propagation only at the start to lock the modal
+                e.stopPropagation();
+            }}
+            onTouchEnd={() => setInteraction(false)}
+            onWheel={(e) => {
                 setInteraction(true);
                 e.stopPropagation();
             }}
-            onTouchMove={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            onPointerMove={(e) => e.stopPropagation()}
-            onWheel={(e) => e.stopPropagation()}
         >
             {(gpsError || gpsPermission === 'denied') && (
                 <div className="absolute top-4 left-4 right-4 z-[500] bg-red-50 p-4 rounded-2xl border border-red-100 flex items-center gap-3 shadow-lg">
@@ -195,32 +209,35 @@ const TrackOrderMap = ({
 
             <MapContainer
                 center={currentPos || pickupPos || [33.315, 44.361]}
-                zoom={16}
+                zoom={defaultZoom}
+                minZoom={minZoom}
+                maxZoom={maxZoom}
                 style={{ height: '100%', width: '100%' }}
                 zoomControl={false}
-                attributionControl={false}
-                preferCanvas={false}
+                attributionControl={MAP_CONFIG.controls.attributionControl}
+                preferCanvas={true}
                 whenReady={(e) => {
                     setTimeout(() => {
                         e.target.invalidateSize();
                     }, 500);
                 }}
-                /* GESTURE STABILIZATION:
-                   - tap: false (Crucial for mobile browsers to prevent the 300ms delay and ghost zooms)
-                */
                 scrollWheelZoom={scrollWheelZoom}
                 doubleClickZoom={doubleClickZoom}
-                touchZoom={true}
-                dragging={true}
-                tap={true}
+                touchZoom={touchZoom}
+                dragging={dragging}
+                boxZoom={boxZoom}
+                keyboard={keyboard}
+                animate={animate}
+                tap={MAP_CONFIG.gestures.tap}
                 inertia={true}
                 bounceAtZoomLimits={true}
             >
-                <ZoomControl position="bottomright" />
+                {zoomControl && <ZoomControl position={zoomControlPosition} />}
+
                 <TileLayer
                     url="https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
                     subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
-                    maxZoom={20}
+                    maxZoom={maxZoom}
                 />
 
                 {routePoints.length > 1 && (
@@ -273,7 +290,7 @@ const TrackOrderMap = ({
                 )}
 
                 <MapEvents />
-                <MapEffectsManager points={mapPoints} isInteracting={isInteracting} />
+                <MapEffectsManager points={mapPoints} isInteracting={isInteracting} zoom={defaultZoom} />
 
                 {showRecenter && <RecenterAction pos={currentPos || pickupPos} />}
             </MapContainer>

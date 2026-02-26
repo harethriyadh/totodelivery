@@ -13,6 +13,7 @@ import { useGeolocation } from '../../hooks/useGeolocation';
 import { calculateDistance as calcDist } from '../../utils/mapUtils';
 import { SERVICE_AREA, isWithinServiceArea } from '../../utils/geofencing';
 import { useAuth } from '../../context/AuthContext';
+import { MAP_CONFIG } from '../../config/mapConfig';
 
 const DriverHome = () => {
     const { user } = useAuth();
@@ -248,6 +249,7 @@ const DriverHome = () => {
                                 step={step}
                                 gpsError={gpsError}
                                 gpsPermission={permissionStatus}
+                                defaultZoom={MAP_CONFIG.zoom.tracking}
                             />
                         </div>
 
