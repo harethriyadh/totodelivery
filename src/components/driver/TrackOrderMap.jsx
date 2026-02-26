@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polyline, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Store, User, Navigation, AlertCircle, Signal, SignalHigh, SignalLow } from 'lucide-react';
+import { Store, User, Navigation, AlertCircle, SignalHigh, SignalLow } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { fetchOSRMRoute } from '../../utils/mapUtils';
 
@@ -14,16 +14,15 @@ function MapEffectsManager({ points, zoom = 16, active = true, isInteracting }) 
     const lastPointsRef = useRef('');
 
     useEffect(() => {
-        // Stop any automated movement if the user is currently interacting with the map
+        // FIX: If user is touching/interacting, NEVER run automated movements.
+        // This prevents the "zoom looping" jitter.
         if (!active || isInteracting || !points || points.length < 1) return;
 
-        // Create a unique key for the points to avoid redundant fits
         const pointsKey = JSON.stringify(points);
         if (pointsKey === lastPointsRef.current) return;
         lastPointsRef.current = pointsKey;
 
-        // Skip fitting if it's basically just one point repeated (likely selecting a single location)
-        if (points.length === 2 && JSON.stringify(points[0]) === JSON.stringify(points[1])) {
+        if (points.length >= 2 && JSON.stringify(points[0]) === JSON.stringify(points[1])) {
             map.setView(points[0], map.getZoom() || zoom);
             return;
         }
@@ -65,20 +64,27 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
     const [isInteracting, setIsInteracting] = useState(false);
     const [routePoints, setRoutePoints] = useState([]);
     const lastRouteRequest = useRef(0);
+    const interactionTimeout = useRef(null);
 
-    // Map Click & Interaction Listeners
+    // Helper to handle interaction state more cleanly
+    const setInteraction = (state) => {
+        if (interactionTimeout.current) clearTimeout(interactionTimeout.current);
+        setIsInteracting(state);
+        if (!state) {
+            // Wait 3 seconds after touch ends before allowing automated bounds fitting again
+            interactionTimeout.current = setTimeout(() => setIsInteracting(false), 3000);
+        }
+    };
+
     function MapEvents() {
         useMapEvents({
-            dragstart: () => setIsInteracting(true),
-            dragend: () => {
-                // Delay resuming automated effects to allow smooth transitions
-                setTimeout(() => setIsInteracting(false), 2000);
-            },
-            zoomstart: () => setIsInteracting(true),
-            zoomend: () => {
-                setTimeout(() => setIsInteracting(false), 2000);
-            },
-            touchstart: () => setIsInteracting(true),
+            dragstart: () => setInteraction(true),
+            dragend: () => setInteraction(false),
+            zoomstart: () => setInteraction(true),
+            zoomend: () => setInteraction(false),
+            movestart: () => setInteraction(true),
+            touchstart: () => setInteraction(true),
+            touchend: () => setInteraction(false),
             click: (e) => {
                 if (onMapClick) {
                     onMapClick([e.latlng.lat, e.latlng.lng]);
@@ -88,7 +94,6 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
         return null;
     }
 
-    // Custom Icons
     const createCustomIcon = (icon, color) => {
         const iconHtml = renderToStaticMarkup(
             <div className="p-2.5 rounded-2xl shadow-xl border-2 border-white flex items-center justify-center animate-in zoom-in duration-300" style={{ backgroundColor: color }}>
@@ -116,32 +121,25 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
     const storeIcon = createCustomIcon(<Store />, '#F59E0B');
     const customerIcon = createCustomIcon(<User />, '#3B82F6');
 
-    // 2. Production-Grade Routing (Throttled OSRM)
     useEffect(() => {
-        const throttleTime = 20000; // 20 seconds
+        const throttleTime = 20000;
         const now = Date.now();
-
         const updateRoute = async () => {
             const destination = step === 'PICKUP' ? pickupPos : deliveryPos;
             if (!currentPos || !destination) return;
-
             const roadRoute = await fetchOSRMRoute(currentPos, destination);
             if (roadRoute.length > 0) {
                 setRoutePoints(roadRoute);
                 lastRouteRequest.current = Date.now();
             }
         };
-
         if (now - lastRouteRequest.current > throttleTime || routePoints.length === 0) {
             updateRoute();
         }
-
-        // Periodic update every 20s
         const interval = setInterval(updateRoute, throttleTime);
         return () => clearInterval(interval);
     }, [step, pickupPos, deliveryPos, currentPos]);
 
-    // Memoize points to prevent re-creation on every render
     const mapPoints = useMemo(() => {
         if (routePoints.length > 0) return routePoints;
         if (currentPos && pickupPos && step === 'PICKUP') return [currentPos, pickupPos];
@@ -153,17 +151,17 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
     return (
         <div
             className="h-full w-full relative bg-[#f8f9fa] overflow-hidden"
-            style={{ touchAction: 'none' }} // Critical: Prevents parent scrolling conflicts
+            /* FIX: "pan-x pan-y" tells the browser the map handles its own movements, 
+               preventing the "one finger zoom" bug often seen in app wrappers.
+            */
+            style={{ touchAction: 'pan-x pan-y' }}
             onTouchStart={(e) => {
-                setIsInteracting(true);
+                setInteraction(true);
                 e.stopPropagation();
             }}
-            onTouchMove={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
         >
-            {/* GPS Health / Permission Error Badge */}
             {(gpsError || gpsPermission === 'denied') && (
-                <div className="absolute top-4 left-4 right-4 z-[500] bg-red-50 p-4 rounded-2xl border border-red-100 flex items-center gap-3 shadow-lg animate-in slide-in-from-top duration-500">
+                <div className="absolute top-4 left-4 right-4 z-[500] bg-red-50 p-4 rounded-2xl border border-red-100 flex items-center gap-3 shadow-lg">
                     <AlertCircle className="text-red-500 shrink-0" />
                     <div>
                         <p className="text-[11px] font-black text-red-900 leading-tight">
@@ -175,17 +173,22 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
             )}
 
             <MapContainer
-                center={currentPos || pickupPos}
+                center={currentPos || pickupPos || [33.315, 44.361]}
                 zoom={16}
                 style={{ height: '100%', width: '100%' }}
                 zoomControl={false}
                 attributionControl={false}
-                scrollWheelZoom={false} // Prevents "single-finger zoom" if swiped fast on some devices
+                /* GESTURE STABILIZATION:
+                   - scrollWheelZoom: false (Prevents desktop-style mouse wheel zoom issues)
+                   - dragging: true (Standard 1-finger panning)
+                   - tap: false (Crucial for mobile browsers to prevent the 300ms delay and ghost zooms)
+                */
+                scrollWheelZoom={false}
                 doubleClickZoom={true}
-                touchZoom={true} // standard two-finger pinch
-                dragging={true} // allows standard panning
-                tap={false} // Helps with mobile click delay & accidental zooms
-                bounceAtZoomLimits={false} // Prevents jittering at min/max zoom
+                touchZoom={true}
+                dragging={true}
+                tap={false}
+                bounceAtZoomLimits={true}
             >
                 <ZoomControl position="bottomright" />
                 <TileLayer
@@ -194,7 +197,6 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
                     maxZoom={20}
                 />
 
-                {/* Road-Snapped Polyline (Geometric) */}
                 {routePoints.length > 1 && (
                     <>
                         <Polyline positions={routePoints} pathOptions={{ color: '#49A06D', weight: 12, opacity: 0.1 }} />
@@ -211,14 +213,15 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
                     </>
                 )}
 
-                {/* Active Target Marker */}
                 {step === 'PICKUP' && pickupPos && (
                     <Marker
                         position={pickupPos}
                         icon={storeIcon}
                         draggable={!!onMapClick}
                         eventHandlers={{
+                            dragstart: () => setInteraction(true),
                             dragend: (e) => {
+                                setInteraction(false);
                                 const marker = e.target;
                                 const position = marker.getLatLng();
                                 if (onMapClick) onMapClick([position.lat, position.lng]);
@@ -230,13 +233,13 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
                         </Popup>
                     </Marker>
                 )}
+
                 {step === 'DELIVERY' && deliveryPos && (
                     <Marker position={deliveryPos} icon={customerIcon}>
                         <Popup className="font-tajawal font-black">موقع العميل</Popup>
                     </Marker>
                 )}
 
-                {/* Driver Marker */}
                 {currentPos && (
                     <Marker position={currentPos} icon={driverIcon}>
                         <Popup className="font-tajawal font-black">موقعك الآن</Popup>
@@ -246,12 +249,10 @@ const TrackOrderMap = ({ pickupPos, deliveryPos, currentPos, step, gpsError, gps
                 <MapEvents />
                 <MapEffectsManager points={mapPoints} isInteracting={isInteracting} />
 
-                {/* Map Action Overlays (Connected to Map Logic) */}
                 {showRecenter && <RecenterAction pos={currentPos || pickupPos} />}
             </MapContainer>
 
-            {/* Navigation Status Badge with GPS Strength Icon */}
-            <div className="absolute top-4 right-4 z-[400] px-4 py-2 bg-white/95 backdrop-blur-md rounded-2xl border border-neutral-200 shadow-xl flex items-center gap-3 animate-in fade-in duration-500">
+            <div className="absolute top-4 right-4 z-[400] px-4 py-2 bg-white/95 backdrop-blur-md rounded-2xl border border-neutral-200 shadow-xl flex items-center gap-3">
                 <div className="flex items-center gap-1.5 grayscale-[0.2]">
                     {gpsError ? <SignalLow className="w-4 h-4 text-red-500" /> : <SignalHigh className="w-4 h-4 text-green-500" />}
                 </div>
