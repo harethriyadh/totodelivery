@@ -241,7 +241,7 @@ const DriverHome = () => {
                             <h2 className="text-lg font-black text-neutral-900">تفاصيل الرحلة</h2>
                         </header>
 
-                        <div className="flex-1 bg-neutral-100 relative min-h-[350px] z-0">
+                        <div className="flex-1 bg-neutral-100 relative min-h-[500px] z-0">
                             <TrackOrderMap
                                 pickupPos={activeOrder.pickupPos}
                                 deliveryPos={activeOrder.deliveryPos}

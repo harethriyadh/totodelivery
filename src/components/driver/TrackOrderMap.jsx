@@ -63,6 +63,19 @@ function RecenterAction({ pos }) {
 }
 
 
+/**
+ * Explicit View Handler for triggers
+ */
+function MapViewHandler({ center, trigger }) {
+    const map = useMap();
+    useEffect(() => {
+        if (center && trigger > 0) {
+            map.flyTo(center, 18, { duration: 1.5 });
+        }
+    }, [trigger]); // Only move when trigger explicitly changes
+    return null;
+}
+
 const TrackOrderMap = ({
     pickupPos,
     deliveryPos,
@@ -87,7 +100,9 @@ const TrackOrderMap = ({
     defaultZoom = MAP_CONFIG.zoom.default,
     boxZoom = MAP_CONFIG.gestures.boxZoom,
     keyboard = MAP_CONFIG.gestures.keyboard,
-    animate = MAP_CONFIG.animation.animate
+    animate = MAP_CONFIG.animation.animate,
+    markerIcon = null,
+    centerTrigger = 0
 }) => {
     const [isInteracting, setIsInteracting] = useState(false);
     const [routePoints, setRoutePoints] = useState([]);
@@ -264,7 +279,7 @@ const TrackOrderMap = ({
                 {step === 'PICKUP' && pickupPos && (
                     <Marker
                         position={pickupPos}
-                        icon={storeIcon}
+                        icon={markerIcon || storeIcon}
                         draggable={!!onMapClick}
                         eventHandlers={{
                             dragstart: () => setInteraction(true),
@@ -293,6 +308,11 @@ const TrackOrderMap = ({
                         <Popup className="font-tajawal font-black">موقعك الآن</Popup>
                     </Marker>
                 )}
+
+                <MapViewHandler
+                    center={step === 'PICKUP' ? pickupPos : deliveryPos}
+                    trigger={centerTrigger}
+                />
 
                 <MapEvents />
                 <MapEffectsManager points={mapPoints} isInteracting={isInteracting} zoom={defaultZoom} active={showRoute} />
