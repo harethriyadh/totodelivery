@@ -10,10 +10,12 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { SERVICE_AREA } from '../../utils/geofencing';
 import EditProfileModal from '../../components/market/EditProfileModal';
+import LogoutConfirmModal from '../../components/shared/LogoutConfirmModal';
 
 const MarketProfile = () => {
     const { logout } = useAuth();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [userData, setUserData] = useState({
         ownerName: 'حارث الرياض',
         phone1: '07701234567',
@@ -23,6 +25,12 @@ const MarketProfile = () => {
 
     return (
         <div className="flex flex-col h-full bg-[#fcfcfc] pb-24">
+            <LogoutConfirmModal
+                isOpen={isLogoutModalOpen}
+                onClose={() => setIsLogoutModalOpen(false)}
+                onConfirm={logout}
+            />
+
             <EditProfileModal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
@@ -84,7 +92,7 @@ const MarketProfile = () => {
                 </div>
 
                 <button
-                    onClick={logout}
+                    onClick={() => setIsLogoutModalOpen(true)}
                     className="w-full py-5 rounded-[24px] bg-red-50 text-red-500 font-black text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
                 >
                     <LogOut size={18} className="rotate-180" />
