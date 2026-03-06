@@ -1,0 +1,52 @@
+TOTO DELIVERY - FRONTEND AUTHENTICATION & DASHBOARD REFERENCE
+============================================================
+
+1. MOCK LOGIN CREDENTIALS (CURRENT FRONTEND IMPLEMENTATION)
+------------------------------------------------------------
+These are the static credentials currently used in App.jsx:
+
+- Market Owner Account:
+    * Username: 'market'
+    * Password: '0000'
+    * Assigned Role: 'market_owner'
+
+- Driver (Captain) Account:
+    * Username: 'driver'
+    * Password: '1234'
+    * Assigned Role: 'driver'
+
+2. FRONTEND ROLE MAPPING (App.jsx)
+---------------------------------
+The application determines which dashboard to render based on user.role:
+
+- Role: 'market_owner'  => Component: <MarketDashboard />
+- Role: 'driver'        => Component: <DriverHome />
+
+3. SESSION PERSISTENCE (AuthContext.jsx)
+---------------------------------------
+The frontend stores the following in localStorage after login:
+
+- Key: 'user_role'      => Values: 'market_owner' | 'driver'
+- Key: 'username'       => User's login name
+- Key: 'market_online'  => Boolean (true/false) for market availability status
+
+4. CORE AUTHENTICATION LOGIC (App.jsx)
+-----------------------------------
+Location: /src/App.jsx
+
+- The handleLogin function checks for role selection, username, and password.
+- Currently uses a hardcoded comparison:
+  const isValid = (selectedRole === 'driver' && username === 'driver' && password === '1234') ||
+                  (selectedRole === 'market_owner' && username === 'market' && password === '0000');
+
+5. RELEVANT FILES FOR BACKEND INTEGRATION
+----------------------------------------
+- /src/App.jsx: Contains the LoginScreen component and mock validation logic.
+- /src/context/AuthContext.jsx: Manages application-wide user state and localStorage syncing.
+- /API_DATABASE_SCHEMAS.txt: Defines the target DB structure (core.users, etc.) for the real backend.
+
+------------------------------------------------------------
+BACKEND AGENT INSTRUCTIONS:
+Replace the mock logic in App.jsx (handleLogin) with a calls to your actual 
+auth API endpoints (e.g., /api/auth/login). Ensure the roles returned by 
+the backend match 'market_owner' or 'driver' to keep the frontend routing intact.

@@ -202,7 +202,7 @@ const TrackOrderMap = ({
 
     return (
         <div
-            className="h-full w-full relative bg-[#f8f9fa] overflow-hidden"
+            className="h-full w-full relative bg-[#f8f9fa] overflow-hidden rounded-none"
             style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
             onTouchStart={(e) => {
                 setInteraction(true);
@@ -255,7 +255,7 @@ const TrackOrderMap = ({
                 {zoomControl && <ZoomControl position={zoomControlPosition} />}
 
                 <TileLayer
-                    url="https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                    url="https://{s}.google.com/vt/lyrs=y&hl=ar&x={x}&y={y}&z={z}&apistyle=s.t:81|v:off"
                     subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
                     maxZoom={maxZoom}
                 />

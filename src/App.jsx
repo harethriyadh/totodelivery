@@ -11,8 +11,24 @@ const LoginScreen = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [serverStatus, setServerStatus] = useState('checking'); // checking, online, offline
 
-  const handleLogin = () => {
+  React.useEffect(() => {
+    const checkServer = async () => {
+      try {
+        const response = await fetch('https://dof-b.onrender.com/test-server', { mode: 'no-cors' });
+        // Since we use no-cors, we can't see the status, but if it doesn't throw, it's likely reachable
+        setServerStatus('online');
+      } catch (err) {
+        setServerStatus('offline');
+      }
+    };
+    checkServer();
+    const interval = setInterval(checkServer, 10000); // Check every 10s
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleLogin = async () => {
     if (!selectedRole) {
       setError('يرجى اختيار نوع الحساب');
       return;
@@ -28,14 +44,15 @@ const LoginScreen = () => {
       return;
     }
 
-    // Mock Authentication Logic
-    const isValid = (selectedRole === 'driver' && username === 'driver' && password === '1234') ||
-      (selectedRole === 'market_owner' && username === 'market' && password === '0000');
+    // Platform Segregation Update: Map role to platform identifier
+    const platform = selectedRole === 'market_owner' ? 'MARKET_DASHBOARD' : 'DRIVER_APP';
 
-    if (isValid) {
-      login(username, selectedRole);
+    const result = await login(username, password, platform);
+
+    if (result.success) {
+      setError('');
     } else {
-      setError('اسم المستخدم أو كلمة المرور غير صحيحة');
+      setError(result.message || 'اسم المستخدم أو كلمة المرور غير صحيحة');
     }
   };
 
@@ -47,6 +64,18 @@ const LoginScreen = () => {
         <div className="text-center">
           <h1 className="text-4xl font-black text-white mb-2 tracking-tighter">توتو ديليفري</h1>
           <p className="text-neutral-400 font-bold italic">دخول النظام الآمن</p>
+
+          {serverStatus === 'online' && (
+            <div className="mt-4 flex items-center justify-center gap-2 animate-fade-in">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                Server Live
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -125,7 +154,7 @@ const LoginScreen = () => {
               </button>
 
               <p className="text-[10px] text-neutral-500 text-center font-bold pt-4">
-                {selectedRole === 'driver' ? 'تجريبي: driver / 1234' : 'تجريبي: market / 0000'}
+                تأكد من إدخال بياناتك الصحيحة للمتابعة
               </p>
             </div>
           )}
@@ -136,18 +165,42 @@ const LoginScreen = () => {
 };
 
 const AppContent = () => {
-  const { user, loading } = useAuth();
+  const { user, token, loading, logout } = useAuth();
+
+  // Automatic Logout: Clear session if role is not recognized for this dashboard platform
+  React.useEffect(() => {
+    if (!loading && token && user) {
+      const allowedRoles = ['market_owner', 'driver', 'admin'];
+      if (!allowedRoles.includes(user.role)) {
+        console.warn('Security Alert: Role mismatch detected. Logging out.');
+        logout();
+      }
+    }
+  }, [user, token, loading, logout]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-neutral-900 text-white font-black">جاري التحميل...</div>;
 
-  if (!user) return <LoginScreen />;
+  // Real Token-based Route Guard
+  const isAuthenticated = !!token && !!user;
+
+  if (!isAuthenticated) return <LoginScreen />;
 
   if (user.role === 'market_owner') {
     return <MarketDashboard />;
   }
 
-  // Default to Driver for any other role or 'driver'
-  return <DriverHome />;
+  if (user.role === 'driver') {
+    return <DriverHome />;
+  }
+
+  // Handle Admin or fallback
+  if (user.role === 'admin') {
+    // If there was an AdminDashboard, it would go here. 
+    // For now, redirect to login or show error.
+    return <LoginScreen />;
+  }
+
+  return <LoginScreen />;
 };
 
 function App() {

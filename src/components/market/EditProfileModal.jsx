@@ -59,9 +59,23 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
         setAlertConfig({ open: true, title, message, type });
     };
 
+    // Auto-center on mount
+    useEffect(() => {
+        if (isOpen) {
+            const savedLocation = localStorage.getItem('last_known_location');
+            if (savedLocation) {
+                const parsed = JSON.parse(savedLocation);
+                setFormData(prev => ({ ...prev, storeLocation: parsed }));
+            } else {
+                handleLocate();
+            }
+        }
+    }, [isOpen]);
+
     const handleLocationSelect = (newPos) => {
         if (isWithinServiceArea(newPos[0], newPos[1])) {
             setFormData(prev => ({ ...prev, storeLocation: newPos }));
+            localStorage.setItem('last_known_location', JSON.stringify(newPos));
         } else {
             showAlert('خارج النطاق', 'تنبيه: هذا الموقع خارج نطاق الخدمة المسموح به حالياً.', 'error');
         }
@@ -124,7 +138,7 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                     <div className="flex-1 overflow-y-auto">
                         <div
                             ref={mapContainerRef}
-                            className="h-[360px] sm:h-[400px] w-full overflow-hidden border-b border-neutral-100 relative group bg-neutral-50 shadow-inner"
+                            className="h-[360px] sm:h-[400px] w-full overflow-hidden border-b border-neutral-100 relative group bg-neutral-50 shadow-inner rounded-none"
                             style={{ touchAction: 'none' }}
                         >
                             <div className="absolute top-4 inset-x-0 z-[50] flex justify-center px-12 pointer-events-none">

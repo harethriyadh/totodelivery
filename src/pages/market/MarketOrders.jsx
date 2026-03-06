@@ -1,8 +1,11 @@
 
 import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import OrderCard from '../../components/market/OrderCard';
+import { Store, AlertTriangle } from 'lucide-react';
 
 const MarketOrders = () => {
+    const { isOnline } = useAuth();
     const [orders, setOrders] = useState([
         {
             id: '1234',
@@ -43,9 +46,31 @@ const MarketOrders = () => {
         }));
     };
 
+    if (!isOnline) {
+        return (
+            <div className="px-6 py-12 slide-up flex flex-col items-center justify-center text-center">
+                <div className="w-20 h-20 bg-neutral-100 rounded-3xl flex items-center justify-center text-neutral-400 mb-6 border border-neutral-200 shadow-inner">
+                    <Store className="w-10 h-10" />
+                </div>
+                <h2 className="text-xl font-black text-neutral-800 mb-2">المتجر مغلق حالياً</h2>
+                <p className="text-sm text-neutral-500 font-bold max-w-[240px] leading-relaxed">
+                    لن تتمكن من استقبال أي طلبات جديدة حتى تقوم بتغيير حالة المتجر إلى <span className="text-green-600 font-black">"مفتوح"</span> من الصفحة الرئيسية.
+                </p>
+                <div className="mt-8 p-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-center gap-3 text-right">
+                    <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600 shrink-0">
+                        <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <p className="text-[11px] text-orange-700 font-black leading-tight">
+                        ملاحظة: في حالة كون المتجر غير متاح، لن يتمكن الزبائن من رؤية المنتجات التي يعرضها المتجر.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="px-6 py-6 slide-up pb-24">
-            <h2 className="text-xl font-black text-neutral-900 mb-6">الطلبات النشطة</h2>
+            <h2 className="text-xl font-black text-neutral-900 mb-6 text-right">الطلبات النشطة</h2>
 
             <div className="space-y-4">
                 {orders.length === 0 ? (
