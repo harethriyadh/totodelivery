@@ -11,6 +11,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
     const [isOnline, setIsOnline] = useState(false);
+    const [marketType, setMarketType] = useState(localStorage.getItem('market_type') || null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -26,6 +27,22 @@ export const AuthProvider = ({ children }) => {
                 username: storedUsername || ''
             });
             setIsOnline(localStorage.getItem('market_online') === 'true');
+
+            // Fetch fresh market profile to get market_type
+            if (storedRole === 'market_owner') {
+                fetch(`${API_BASE_URL}/profile/market`, {
+                    headers: { 'Authorization': `Bearer ${storedToken}` }
+                })
+                    .then(r => r.ok ? r.json() : null)
+                    .then(data => {
+                        const type = data?.data?.market_type || data?.market_type || null;
+                        if (type) {
+                            setMarketType(type);
+                            localStorage.setItem('market_type', type);
+                        }
+                    })
+                    .catch(() => { });
+            }
         }
         setLoading(false);
     }, []);
@@ -57,7 +74,7 @@ export const AuthProvider = ({ children }) => {
 
             if (response.ok && data.success && data.token) {
                 const userData = {
-                    id: data.user?.id,
+                    id: data.user?.id || data.user?._id, // Data Convention v4.3
                     username: data.user?.username || username,
                     role: data.user?.role || data.role
                 };
@@ -98,27 +115,64 @@ export const AuthProvider = ({ children }) => {
             setUser(null);
             setToken(null);
             setIsOnline(false);
+            setMarketType(null);
             localStorage.removeItem('token');
             localStorage.removeItem('refresh_token');
             localStorage.removeItem('user_role');
             localStorage.removeItem('username');
             localStorage.removeItem('market_online');
+            localStorage.removeItem('market_type');
         }
     };
 
     const toggleOnline = async () => {
-        // Here you would typically call an API to update status, then toggle UI
         const newState = !isOnline;
-        setIsOnline(newState);
-        localStorage.setItem('market_online', newState);
-        return newState;
+        try {
+            const response = await apiFetch('/profile/market', {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    is_open: newState,
+                    status: newState ? 'active' : 'inactive'
+                })
+            });
+            if (response.ok) {
+                setIsOnline(newState);
+                localStorage.setItem('market_online', newState);
+                return newState;
+            } else {
+                console.error("Failed to toggle online status on server");
+                return isOnline;
+            }
+        } catch (err) {
+            console.error("Network error toggling online status", err);
+            return isOnline;
+        }
+    };
+
+    const updateMarketType = async (type) => {
+        try {
+            const response = await apiFetch('/profile/market', {
+                method: 'PATCH',
+                body: JSON.stringify({ market_type: type })
+            });
+            if (response.ok) {
+                setMarketType(type);
+                localStorage.setItem('market_type', type);
+                return true;
+            }
+        } catch (err) {
+            console.error('Failed to update market type', err);
+        }
+        return false;
     };
 
     const value = {
         user,
         token,
         isOnline,
+        marketType,
         toggleOnline,
+        updateMarketType,
         login,
         logout,
         loading

@@ -16,7 +16,7 @@ const LoginScreen = () => {
   React.useEffect(() => {
     const checkServer = async () => {
       try {
-        const response = await fetch('https://dof-b.onrender.com/test-server', { mode: 'no-cors' });
+        const response = await fetch('http://localhost:3001/test-server', { mode: 'no-cors' });
         // Since we use no-cors, we can't see the status, but if it doesn't throw, it's likely reachable
         setServerStatus('online');
       } catch (err) {

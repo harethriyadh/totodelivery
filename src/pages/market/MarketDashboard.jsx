@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, Package, ShoppingBag, User } from 'lucide-react';
 import MarketBottomNav from '../../components/market/MarketBottomNav';
 import MarketHome from './MarketHome';
@@ -9,6 +8,13 @@ import MarketProfile from './MarketProfile';
 
 const MarketDashboard = () => {
     const [view, setView] = useState('home');
+    const [hasNewOrder, setHasNewOrder] = useState(true); // Mock initial state for the dot
+
+    useEffect(() => {
+        if (view === 'orders') {
+            setHasNewOrder(false);
+        }
+    }, [view]);
 
     return (
         <div className="bg-neutral-50 h-screen flex flex-col relative overflow-hidden">
@@ -23,7 +29,6 @@ const MarketDashboard = () => {
                         <p className="text-[10px] text-neutral-400 font-bold">لوحة التحكم</p>
                     </div>
                 </div>
-                {/* Busy Mode Toggle could go here but let's keep it in Home/Stats for now */}
             </header>
 
             <main className="flex-1 viewport-scroll w-full pb-24">
@@ -33,7 +38,7 @@ const MarketDashboard = () => {
                 {view === 'profile' && <MarketProfile />}
             </main>
 
-            <MarketBottomNav view={view} setView={setView} />
+            <MarketBottomNav view={view} setView={setView} hasNewOrder={hasNewOrder} />
         </div>
     );
 };

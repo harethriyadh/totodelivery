@@ -20,44 +20,47 @@ export const checkCustomerSession = () => {
 /**
  * Handles real /auth/verify-checkout request.
  */
+/**
+ * Customer Checkout - Technical Specifications V1.0
+ */
 export const verifyCustomerCheckout = async (customerData) => {
     try {
         const deviceInfo = getDeviceInfo();
 
+        // Technical Spec: [long, lat]
+        const coordinates = customerData.location?.coordinates || [0, 0];
+
+        const payload = {
+            phone: customerData.phone,
+            name: customerData.name,
+            location: { coordinates },
+            device_info: { id: deviceInfo.id }
+        };
+
         const response = await fetch(`${API_BASE_URL}/auth/verify-checkout`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                phone: customerData.phone,
-                name: customerData.name,
-                location: {
-                    coordinates: [customerData.location[1], customerData.location[0]] // [longitude, latitude]
-                },
-                device_info: deviceInfo
-            })
+            body: JSON.stringify(payload)
         });
 
         const data = await response.json();
 
-        if (response.ok && data.success) {
-            // Save the confirmed session locally to prevent future prompts
-            localStorage.setItem('customer_session', JSON.stringify({
-                verified: true,
-                phone: customerData.phone,
-                timestamp: new Date().toISOString()
-            }));
+        if (response.ok && data.success && data.token) {
+            // Persist customer session
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user_role', 'customer');
+            if (data.user?.id) localStorage.setItem('customer_id', data.user.id);
 
-            // Remember last used coordinates
-            if (customerData.location) {
-                localStorage.setItem('last_known_location', JSON.stringify(customerData.location));
-            }
-
-            return { success: true, data };
+            // Success response
+            return { success: true, user: data.user };
         } else {
-            return { success: false, message: data.message || 'فشل التحقق من الطلب' };
+            return {
+                success: false,
+                message: data.message || 'فشل التحقق من البيانات'
+            };
         }
     } catch (error) {
-        console.error('Checkout Verification Error:', error);
+        console.error('Checkout Auth Error:', error);
         return { success: false, message: 'خطأ في الاتصال بالخادم' };
     }
 };

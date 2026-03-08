@@ -6,22 +6,48 @@ import {
     User,
     Phone,
     Edit3,
+    ChevronDown,
+    Check,
+    Loader2,
 } from 'lucide-react';
+import { clsx } from 'clsx';
 import { useAuth } from '../../context/AuthContext';
 import { SERVICE_AREA } from '../../utils/geofencing';
 import EditProfileModal from '../../components/market/EditProfileModal';
 import LogoutConfirmModal from '../../components/shared/LogoutConfirmModal';
 
+const MARKET_TYPES = [
+    { value: 'fruits_veg', label: 'فواكه وخضروات', emoji: '🍎' },
+    { value: 'groceries', label: 'بقالة', emoji: '🛒' },
+    { value: 'makeup', label: 'مكياج وتجميل', emoji: '💄' },
+    { value: 'food', label: 'طعام', emoji: '🍔' },
+    { value: 'pharmacy', label: 'صيدلية', emoji: '💊' },
+    { value: 'bakery', label: 'مخبوزات', emoji: '🥖' },
+    { value: 'other', label: 'أخرى', emoji: '🏪' },
+];
+
 const MarketProfile = () => {
-    const { logout } = useAuth();
+    const { logout, marketType, updateMarketType } = useAuth();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+    const [typeLoading, setTypeLoading] = useState(false);
     const [userData, setUserData] = useState({
         ownerName: 'حارث الرياض',
         phone1: '07701234567',
         address: 'حي النعيم، شارع 45، بناية 12',
         storeLocation: [SERVICE_AREA.center.lat, SERVICE_AREA.center.lng]
     });
+
+    const currentType = MARKET_TYPES.find(t => t.value === marketType);
+
+    const handleTypeSelect = async (type) => {
+        setIsTypeDropdownOpen(false);
+        if (type === marketType) return;
+        setTypeLoading(true);
+        await updateMarketType(type);
+        setTypeLoading(false);
+    };
 
     return (
         <div className="flex flex-col h-full bg-[#fcfcfc] pb-24">
@@ -58,6 +84,14 @@ const MarketProfile = () => {
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                     <span className="text-[11px] font-black text-neutral-400 uppercase tracking-widest">المتجر موثق</span>
                 </div>
+
+                {/* Market Type Badge */}
+                {currentType && (
+                    <div className="mt-3 px-4 py-1.5 bg-primary-50 border border-primary-100 rounded-full flex items-center gap-2">
+                        <span className="text-base">{currentType.emoji}</span>
+                        <span className="text-xs font-black text-primary-600">{currentType.label}</span>
+                    </div>
+                )}
             </div>
 
             <div className="px-6 space-y-6">
@@ -88,6 +122,58 @@ const MarketProfile = () => {
                         <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-neutral-400">
                             <MapPin size={18} />
                         </div>
+                    </div>
+
+                    {/* Market Type Selector Row */}
+                    <div className="p-5 relative">
+                        <div className="flex items-center justify-between">
+                            <div className="text-right flex-1">
+                                <p className="text-[10px] font-black text-neutral-400 uppercase">نوع المتجر</p>
+                            </div>
+                            <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-lg">
+                                {currentType ? currentType.emoji : '🏪'}
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
+                            disabled={typeLoading}
+                            className={clsx(
+                                "w-full mt-3 bg-[#f9f9f9] border rounded-xl px-4 py-3.5 text-sm font-bold text-neutral-900 flex items-center justify-between transition-all",
+                                isTypeDropdownOpen ? "border-primary-400 ring-4 ring-primary-500/5" : "border-neutral-100"
+                            )}
+                        >
+                            <ChevronDown className={clsx("w-4 h-4 text-neutral-400 transition-transform duration-300", isTypeDropdownOpen && "rotate-180")} />
+                            <span className="flex items-center gap-2">
+                                {typeLoading
+                                    ? <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
+                                    : <span>{currentType ? `${currentType.emoji} ${currentType.label}` : 'اختر نوع المتجر'}</span>
+                                }
+                            </span>
+                        </button>
+
+                        {isTypeDropdownOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setIsTypeDropdownOpen(false)} />
+                                <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-neutral-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                    {MARKET_TYPES.map((t) => (
+                                        <button
+                                            key={t.value}
+                                            onClick={() => handleTypeSelect(t.value)}
+                                            className={clsx(
+                                                "w-full flex items-center justify-between px-4 py-3.5 text-sm font-bold transition-colors text-right",
+                                                marketType === t.value ? "bg-primary-50 text-primary-700" : "text-neutral-700 hover:bg-neutral-50"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-base">{t.emoji}</span>
+                                                <span>{t.label}</span>
+                                            </div>
+                                            {marketType === t.value && <Check className="w-4 h-4 text-primary-500" strokeWidth={3} />}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 

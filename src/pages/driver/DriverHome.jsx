@@ -14,6 +14,8 @@ import { calculateDistance as calcDist } from '../../utils/mapUtils';
 import { SERVICE_AREA, isWithinServiceArea } from '../../utils/geofencing';
 import { useAuth } from '../../context/AuthContext';
 import { MAP_CONFIG } from '../../config/mapConfig';
+import { apiFetch } from '../../utils/api';
+import { DriverOrderSkeleton } from '../../components/shared/Skeletons';
 
 const DriverHome = () => {
     const { user } = useAuth();
@@ -25,6 +27,8 @@ const DriverHome = () => {
     const [itemsChecked, setItemsChecked] = useState({});
     const [view, setView] = useState('home');
     const [availableOrders, setAvailableOrders] = useState([]);
+    const [loadingOrders, setLoadingOrders] = useState(false);
+    const [driverProfile, setDriverProfile] = useState(null);
     const [geofenceAlertShown, setGeofenceAlertShown] = useState(false);
 
     // 1. Real-Time Geolocation
@@ -65,37 +69,77 @@ const DriverHome = () => {
         return distanceToTarget > 10;
     }, [distanceToTarget, activeOrder]);
 
+    // Profile Fetch
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await apiFetch('/profile/driver');
+                if (response.ok) {
+                    const data = await response.json();
+                    setDriverProfile(data.profile || data);
+                }
+            } catch (err) {
+                console.error('Failed to fetch driver profile', err);
+            }
+        };
+        fetchProfile();
+    }, []);
+
     // Available Orders Logic (near real location)
     useEffect(() => {
-        if (isOnline && !activeOrder && availableOrders.length === 0) {
-            const timer = setTimeout(() => {
-                const getRandomOffset = () => (Math.random() - 0.5) * 0.02;
-                setAvailableOrders([
-                    {
-                        id: 'ORD-' + Math.floor(1000 + Math.random() * 9000),
-                        storeName: 'توتو ماركت - النعيم',
-                        customerName: 'سارة أحمد',
-                        distance: 'موقع قريب',
-                        earnings: '12.00',
-                        itemsCount: 5,
-                        pickupAddress: 'موقع المتجر القريب',
-                        deliveryAddress: 'حي العميل المجاور',
-                        pickupPos: [currentCoords[0] + getRandomOffset(), currentCoords[1] + getRandomOffset()],
-                        deliveryPos: [currentCoords[0] + getRandomOffset(), currentCoords[1] + getRandomOffset()],
-                        items: [
-                            { id: 1, name: 'طماطم طازجة', quantity: 2, unit: 'كجم' },
-                            { id: 2, name: 'خيار بلدي', quantity: 1, unit: 'كجم' }
-                        ]
-                    }
-                ]);
-            }, 1500);
-            return () => clearTimeout(timer);
-        }
-    }, [isOnline, activeOrder, availableOrders.length, currentCoords]);
+        let interval;
+        const fetchOrders = async () => {
+            if (!isOnline || activeOrder) return;
+            try {
+                setLoadingOrders(true);
+                const response = await apiFetch('/orders/active');
+                if (response.ok) {
+                    const data = await response.json();
+                    // Process backend response, e.g. mapping coordinates, calculating distance
+                    // Mocking mapping temporarily to display properly if missing from backend:
+                    const orderArray = data.data || data.orders || (Array.isArray(data) ? data : []);
+                    const processed = orderArray.map(o => ({
+                        ...o,
+                        id: o._id || o.id,
+                        storeName: o.market_name || 'Market',
+                        pickupAddress: o.snapshots?.pickup_loc?.address || 'Pickup Point',
+                        earnings: o.payment?.delivery_fee || '0.00'
+                    }));
+                    setAvailableOrders(processed);
+                }
+            } catch (err) {
+                console.error('Failed to fetch orders', err);
+            } finally {
+                setLoadingOrders(false);
+            }
+        };
 
-    const handleStatusChange = (newStatus) => {
-        setDriverStatus(newStatus);
-        if (newStatus === 'offline') setAvailableOrders([]);
+        if (isOnline) {
+            fetchOrders();
+            interval = setInterval(fetchOrders, 30000); // Poll every 30s
+        } else {
+            setAvailableOrders([]);
+        }
+
+        return () => clearInterval(interval);
+    }, [isOnline, activeOrder]);
+
+    const handleStatusChange = async (newStatus) => {
+        try {
+            const response = await apiFetch('/profile/driver', {
+                method: 'PATCH',
+                body: JSON.stringify({ availability_state: newStatus })
+            });
+            if (response.ok) {
+                setDriverStatus(newStatus);
+                if (newStatus === 'offline') setAvailableOrders([]);
+            } else {
+                alert('فشل تغيير حالة الاتصال على الخادم');
+            }
+        } catch (err) {
+            console.error('Status change error', err);
+            alert('خطأ في الشبكة، تعذر تغيير حالة الاتصال');
+        }
     };
 
     const handleAcceptOrder = (order) => {
@@ -153,9 +197,11 @@ const DriverHome = () => {
                             <StatusToggle status={driverStatus} onStatusChange={handleStatusChange} />
                             <div className="text-right">
                                 <h3 className="text-sm font-black text-neutral-900 leading-none">
-                                    {user?.username === 'driver' ? 'كابتن أحمد' : (user?.username || 'كابتن')}
+                                    {driverProfile?.full_name || (user?.username === 'driver' ? 'كابتن أحمد' : (user?.username || 'كابتن'))}
                                 </h3>
-                                <p className="text-[10px] text-primary-500 font-bold uppercase mt-1">شريك بلاتيني</p>
+                                <p className="text-[10px] text-primary-500 font-bold uppercase mt-1">
+                                    {driverProfile?.vehicle?.plate || 'شريك بلاتيني'}
+                                </p>
                             </div>
                         </div>
 
@@ -203,29 +249,37 @@ const DriverHome = () => {
                                     <button className="btn-secondary px-5 py-2 text-[11px] font-black border-none shadow-soft flex items-center gap-2">تحديث القائمة</button>
                                 </div>
                                 <div className="space-y-4">
-                                    {availableOrders.map((order) => (
-                                        <div key={order.id} className="app-card p-5 border border-neutral-100 hover:app-card-active transition-all text-right group active:scale-[0.98]">
-                                            <div className="flex justify-between items-start mb-5">
-                                                <span className="bg-primary-50 text-primary-600 text-[10px] font-black px-3 py-1.5 rounded-full border border-primary-500/10">متاح الآن</span>
-                                                <span className="text-[10px] text-neutral-300 font-bold">رقم {order.id}</span>
-                                            </div>
-                                            <div className="flex gap-4 mb-6">
-                                                <div className="w-16 h-16 img-placeholder shrink-0 flex items-center justify-center">
-                                                    <Search className="w-6 h-6 text-neutral-200" />
+                                    {loadingOrders && availableOrders.length === 0 ? (
+                                        [1, 2, 3].map(sk => <DriverOrderSkeleton key={sk} />)
+                                    ) : availableOrders.length === 0 ? (
+                                        <div className="text-center py-10 bg-neutral-50 rounded-2xl border border-dashed border-neutral-200">
+                                            <p className="text-neutral-400 font-bold">لا توجد طلبات متاحة في منطقتك</p>
+                                        </div>
+                                    ) : (
+                                        availableOrders.map((order) => (
+                                            <div key={order.id} className="app-card p-5 border border-neutral-100 hover:app-card-active transition-all text-right group active:scale-[0.98]">
+                                                <div className="flex justify-between items-start mb-5">
+                                                    <span className="bg-primary-50 text-primary-600 text-[10px] font-black px-3 py-1.5 rounded-full border border-primary-500/10">متاح الآن</span>
+                                                    <span className="text-[10px] text-neutral-300 font-bold">رقم {order.id?.slice(-4) || order.id}</span>
                                                 </div>
-                                                <div className="flex-1">
-                                                    <h4 className="font-black text-neutral-900 mb-1.5 text-base">{order.storeName}</h4>
-                                                    <div className="text-[11px] text-neutral-400 font-bold">
-                                                        <span>{order.pickupAddress}</span>
+                                                <div className="flex gap-4 mb-6">
+                                                    <div className="w-16 h-16 img-placeholder shrink-0 flex items-center justify-center">
+                                                        <Search className="w-6 h-6 text-neutral-200" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <h4 className="font-black text-neutral-900 mb-1.5 text-base">{order.storeName}</h4>
+                                                        <div className="text-[11px] text-neutral-400 font-bold">
+                                                            <span>{order.pickupAddress}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                <div className="flex items-center justify-between pt-5 border-t border-neutral-50">
+                                                    <span className="text-2xl font-black text-neutral-900">{order.earnings} د.ع</span>
+                                                    <button onClick={() => handleAcceptOrder(order)} className="btn-primary px-8 py-4 text-sm font-black">حجز الطلب (Reserve)</button>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center justify-between pt-5 border-t border-neutral-50">
-                                                <span className="text-2xl font-black text-neutral-900">{order.earnings} د.ع</span>
-                                                <button onClick={() => handleAcceptOrder(order)} className="btn-primary px-8 py-4 text-sm font-black">حجز الطلب (Reserve)</button>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ))
+                                    )}
                                 </div>
                             </div>
                         )}

@@ -1,14 +1,16 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Save, Image, Plus, ChevronDown, Check } from 'lucide-react';
+import { X, Save, Image, Plus, ChevronDown, Check, AlertTriangle, XCircle } from 'lucide-react';
 import { clsx } from 'clsx';
+import { apiFetch } from '../../utils/api';
 
 const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
     const fileInputRef = useRef(null);
     const unitDropdownRef = useRef(null);
     const [isUnitOpen, setIsUnitOpen] = useState(false);
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+    const [actionError, setActionError] = useState(null);
     const categoryDropdownRef = useRef(null);
     const [formData, setFormData] = useState({
         name: '',
@@ -23,7 +25,7 @@ const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
         selectedBadges: [],
     });
 
-    const units = ['كجم', 'حبة', 'علبة', 'كرتون'];
+    const units = ['كجم', 'حبة', 'علبة', 'كرتون', 'غرام'];
     const categories = ['خضار', 'فواكه', 'لحوم', 'مخبوزات', 'مكياج'];
     const availableBadges = ['عضوي ١٠٠٪', 'مستورد طازج', 'جودة عالية'];
 
@@ -46,7 +48,18 @@ const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
             setIsCategoryOpen(false);
         }
         if (itemToEdit) {
-            setFormData(itemToEdit);
+            const reverseUnitMap = { 'kg': 'كجم', 'piece': 'حبة', 'bottle': 'علبة', 'pack': 'كرتون', 'gram': 'غرام' };
+            setFormData({
+                ...itemToEdit,
+                name: itemToEdit.name || '',
+                category: itemToEdit.category?.label_ar || itemToEdit.category || 'خضار',
+                price: itemToEdit.pricing?.price || itemToEdit.price || '',
+                unit: reverseUnitMap[itemToEdit.inventory?.unit_type] || 'حبة',
+                description: itemToEdit.description || '',
+                image: itemToEdit.image_urls?.[0] || itemToEdit.image || null,
+                colors: itemToEdit.attributes?.filter(a => a.key === 'color').map(a => a.value) || [],
+                selectedBadges: itemToEdit.tags || []
+            });
         } else {
             setFormData({
                 name: '',
@@ -80,10 +93,95 @@ const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
         fileInputRef.current.click();
     };
 
-    const handleSubmit = (e) => {
+    const categoryMap = {
+        'خضار': { id: 'fresh_veg', label_ar: 'خضار', parent_id: 'root' },
+        'فواكه': { id: 'fruits', label_ar: 'فواكه', parent_id: 'root' },
+        'لحوم': { id: 'meat', label_ar: 'لحوم', parent_id: 'root' },
+        'مخبوزات': { id: 'bakery', label_ar: 'مخبوزات', parent_id: 'root' },
+        'مكياج': { id: 'beauty', label_ar: 'تجميل', parent_id: 'root' }
+    };
+
+    const unitMap = {
+        'كجم': 'kg',
+        'حبة': 'piece',
+        'علبة': 'bottle',
+        'كرتون': 'pack',
+        'غرام': 'gram'
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        onSave({ ...formData, id: itemToEdit ? itemToEdit.id : Date.now() });
-        onClose();
+
+        const isEdit = !!itemToEdit;
+        let payload = {};
+
+        if (isEdit) {
+            // Edit Payload per V4.3 Spec (Safe Merge)
+            payload = {
+                name: formData.name,
+                description: formData.description,
+                pricing: { price: parseInt(formData.price || 0) || 0 },
+                category: categoryMap[formData.category] || { id: 'generic', label_ar: formData.category, parent_id: 'root' },
+                inventory: { unit_type: unitMap[formData.unit] || 'piece' },
+                attributes: (formData.colors || []).map(color => ({
+                    key: 'color',
+                    value: color,
+                    label: color,
+                    is_available: true
+                })),
+                tags: formData.selectedBadges || []
+            };
+            if (formData.image) payload.image_urls = [formData.image];
+        } else {
+            // Create Payload per V4.3 Spec
+            payload = {
+                name: formData.name,
+                description: formData.description,
+                category: categoryMap[formData.category] || { id: 'generic', label_ar: formData.category, parent_id: 'root' },
+                pricing: {
+                    price: parseInt(formData.price || 0) || 0,
+                    cost_price: Math.round(parseInt(formData.price || 0) * 0.7) || 0
+                },
+                inventory: {
+                    stock_quantity: 100, // Default for new
+                    unit_type: unitMap[formData.unit] || 'piece'
+                },
+                attributes: (formData.colors || []).map(color => ({
+                    key: 'color',
+                    value: color,
+                    label: color,
+                    is_available: true
+                })),
+                brand: 'Toto Local',
+                tags: formData.selectedBadges || [],
+                is_custom: false
+            };
+            if (formData.image) payload.image_urls = [formData.image];
+        }
+
+        setActionError(null);
+        try {
+            const endpoint = isEdit ? `/products/${itemToEdit.id || itemToEdit._id}` : '/products';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            const response = await apiFetch(endpoint, {
+                method,
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                onSave(payload); // Refresh list in parent
+                onClose();
+            } else {
+                const errData = await response.json().catch(() => ({}));
+                setActionError(errData.message || 'فشل حفظ المنتج، تأكد من مسار التعديل في الباك إند.');
+                setTimeout(() => setActionError(null), 5000);
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            setActionError('خطأ في الاتصال بالشبكة لحفظ المنتج.');
+            setTimeout(() => setActionError(null), 5000);
+        }
     };
 
     const modalContent = (
@@ -97,6 +195,19 @@ const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                    {/* Inline Action Error Toast */}
+                    {actionError && (
+                        <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex flex-row-reverse items-start justify-between text-right animate-in fade-in slide-in-from-top-2 shadow-sm mb-4">
+                            <div className="flex flex-row-reverse items-start gap-3 flex-1">
+                                <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                                <p className="text-xs text-red-700 font-bold leading-relaxed">{actionError}</p>
+                            </div>
+                            <button type="button" onClick={() => setActionError(null)} className="text-red-400 hover:text-red-600 transition-colors ml-2">
+                                <XCircle className="w-5 h-5" />
+                            </button>
+                        </div>
+                    )}
+
                     {/* Hidden File Input */}
                     <input
                         type="file"

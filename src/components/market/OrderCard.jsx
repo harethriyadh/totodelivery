@@ -4,8 +4,9 @@ import { Package, Clock, CheckCircle, MessageCircle, XCircle } from 'lucide-reac
 import { clsx } from 'clsx';
 import ChatOverlay from './ChatOverlay';
 
-const OrderCard = ({ order, onMarkUnavailable }) => {
-    const [status, setStatus] = useState('pending'); // pending, preparing, ready
+const OrderCard = ({ order, onMarkUnavailable, onUpdateStatus }) => {
+    // Technical Spec: Use order.status from backend
+    const status = order.status || 'pending';
     const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
     const [isChatOpen, setIsChatOpen] = useState(false);
 
@@ -26,18 +27,20 @@ const OrderCard = ({ order, onMarkUnavailable }) => {
     };
 
     const handleAccept = () => {
-        setStatus('preparing');
+        if (onUpdateStatus) onUpdateStatus('preparing');
     };
 
     const handleReady = () => {
-        setStatus('ready');
+        if (onUpdateStatus) onUpdateStatus('searching');
     };
+
+    const displayOrderId = order.short_id || `#${order.id?.slice(-4) || '0000'}`;
 
     return (
         <div className="app-card border border-neutral-100 p-5 mb-4 group hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
-                <span className="bg-neutral-100 text-neutral-600 text-[10px] font-black px-2 py-1 rounded-md">#{order.id}</span>
-                <span className="text-[10px] font-bold text-neutral-400">{order.time}</span>
+                <span className="bg-neutral-100 text-neutral-600 text-[10px] font-black px-2 py-1 rounded-md">{displayOrderId}</span>
+                <span className="text-[10px] font-bold text-neutral-400">{order.time || 'الآن'}</span>
             </div>
 
             <div className="flex gap-4 mb-4">
@@ -46,39 +49,36 @@ const OrderCard = ({ order, onMarkUnavailable }) => {
                 </div>
                 <div className="flex-1">
                     <div className="flex justify-between items-center w-full">
-                        <h4 className="font-black text-neutral-900 text-sm">{order.customerName}</h4>
+                        <h4 className="font-black text-neutral-900 text-sm">{order.customer?.name || order.customerName || 'زبون توتو'}</h4>
                         <div className="flex items-center gap-1.5 px-2 py-1 bg-neutral-50 rounded-lg border border-neutral-100">
                             <span className="text-[9px] font-black text-neutral-400 capitalize">
-                                {order.payment_method === 'cash' ? 'نقداً (Cash)' : 'محفظة (Wallet)'}
+                                {order.payment_method === 'cash' ? 'نقداً' : 'محفظة'}
                             </span>
                         </div>
                     </div>
-                    <p className="text-[11px] text-neutral-500 font-bold mt-0.5">{order.items.length} منتجات • {order.total} د.ع</p>
+                    <p className="text-[11px] text-neutral-500 font-bold mt-0.5">{order.items?.length || 0} منتجات • {order.payment?.total_amount || order.total || order.pricing?.total_price} د.ع</p>
                     <div className="flex items-center gap-2 mt-2">
                         <span className={clsx(
                             "text-[9px] font-black px-2 py-0.5 rounded-full border",
-                            order.payment_status === 'paid'
+                            (order.payment?.status || order.payment_status) === 'paid'
                                 ? "text-green-600 bg-green-50 border-green-100"
                                 : "text-orange-600 bg-orange-50 border-orange-100"
                         )}>
-                            {order.payment_status === 'paid' ? 'مدفوع (Paid)' : 'بانتظار الدفع (Unpaid)'}
+                            {(order.payment?.status || order.payment_status) === 'paid' ? 'مدفوع' : 'بانتظار الدفع'}
                         </span>
-                        {order.cancellation_reason && (
-                            <span className="text-[9px] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">سبب الإلغاء: {order.cancellation_reason}</span>
-                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Items List - Enhanced UI */}
+            {/* Items List */}
             <div className="space-y-2.5 mb-5">
                 <div className="flex items-center justify-between mb-1 px-1">
                     <h5 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">قائمة المنتجات</h5>
-                    <span className="text-[10px] font-black text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">{order.items.length} قطع</span>
+                    <span className="text-[10px] font-black text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">{order.items?.length || 0} قطع</span>
                 </div>
-                {order.items.map((item) => (
+                {order.items?.map((item) => (
                     <div
-                        key={item.id}
+                        key={item.id || item.product_id}
                         className={clsx(
                             "group/item relative flex items-center gap-3 p-3 rounded-2xl border transition-all duration-300",
                             item.unavailable
@@ -90,7 +90,7 @@ const OrderCard = ({ order, onMarkUnavailable }) => {
                             "w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black transition-colors",
                             item.unavailable ? "bg-neutral-200 text-neutral-400" : "bg-neutral-50 text-neutral-700"
                         )}>
-                            {item.quantity}x
+                            {item.quantity || item.qty}x
                         </div>
 
                         <div className="flex-1">
@@ -98,19 +98,19 @@ const OrderCard = ({ order, onMarkUnavailable }) => {
                                 "font-bold text-sm",
                                 item.unavailable ? "text-neutral-400 line-through" : "text-neutral-900"
                             )}>
-                                {item.name}
+                                {item.name || item.product_name}
                             </p>
                             {item.unavailable && (
                                 <span className="text-[10px] font-black text-red-500 flex items-center gap-1 mt-0.5">
                                     <XCircle size={10} />
-                                    غير متوفر في المخزن
+                                    غير متوفر
                                 </span>
                             )}
                         </div>
 
                         {status === 'preparing' && !item.unavailable && (
                             <button
-                                onClick={() => onMarkUnavailable(order.id, item.id)}
+                                onClick={() => onMarkUnavailable(order.id, item.id || item.product_id)}
                                 className="opacity-0 group-hover/item:opacity-100 focus:opacity-100 px-3 py-1.5 rounded-lg bg-red-50 text-red-500 text-[10px] font-black border border-red-100 hover:bg-red-500 hover:text-white transition-all active:scale-95"
                             >
                                 غير متاح
@@ -151,13 +151,13 @@ const OrderCard = ({ order, onMarkUnavailable }) => {
                 </div>
             )}
 
-            {status === 'ready' && (
+            {status === 'searching' && (
                 <div className="bg-green-50 border border-green-100 rounded-xl p-4 text-center">
                     <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-2" />
                     <h4 className="text-lg font-black text-green-700">جاهز للتسليم!</h4>
-                    <p className="text-[10px] text-green-600 font-bold mb-3">أظهر هذا الرمز للسائق</p>
+                    <p className="text-[10px] text-green-600 font-bold mb-3">بانتظار وصول السائق للتحقق من الرمز</p>
                     <div className="bg-white p-2 rounded-lg border border-dashed border-green-200 inline-block">
-                        <span className="text-2xl font-black font-mono tracking-widest text-neutral-900">#{order.id}</span>
+                        <span className="text-2xl font-black font-mono tracking-widest text-neutral-900">{displayOrderId}</span>
                     </div>
                 </div>
             )}

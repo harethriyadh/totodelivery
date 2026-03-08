@@ -1,0 +1,112 @@
+Dear Backend Agent,
+
+Here is the exact Postman Testing Guide logic that the frontend has been updated to expect. Please ensure your backend endpoints perfectly match these exact URLs, methods, headers, and request/response shapes.
+
+**Base URL**: `http://127.0.0.1:3001/api`
+
+---
+
+## 1. Authentication
+
+### Market/Driver Login
+**Method**: `POST`
+**URL**: `/auth/login`
+**Body**:
+```json
+{
+  "username": "market1", // or "driver1"
+  "password": "0000",   // or "1234"
+  "platform": "MARKET_DASHBOARD", // or "DRIVER_APP"
+  "device_info": { "id": "test_device_01", "os": "android", "model": "Samsung S24" }
+}
+```
+**Expected Response**: `{ "success": true, "token": "JWT...", "user": { "id": "...", "role": "market_owner" } }`
+
+### Refresh Token
+**Method**: `POST`
+**URL**: `/auth/refresh-token`
+**Body**: `{ "refresh_token": "..." }`
+
+---
+
+## 2. Profiles
+
+The frontend now attempts to fetch profiles to populate headers and settings.
+
+### Market Profile
+**Method**: `GET` and `PATCH`
+**URL**: `/profile/market`
+**PATCH Body Example**:
+```json
+{
+  "market_name": "TOTO Market",
+  "branch_name": "Main Branch",
+  "is_open": true,
+  "status": "active"
+}
+```
+
+### Driver Profile
+**Method**: `GET` and `PATCH`
+**URL**: `/profile/driver`
+**PATCH Body Example**:
+```json
+{
+  "full_name": "Ahmed Ali",
+  "availability_state": "available",
+  "vehicle": { "type": "car", "plate": "IQ-9999" }
+}
+```
+
+---
+
+## 3. Products (Market)
+
+### Get Products
+**Method**: `GET`
+**URLs**: 
+- `/products/market` (Get all market products)
+- `/products/category/:id` (Get by category)
+
+### Create Product
+**Method**: `POST`
+**URL**: `/products`
+**Expected Body Mapping**:
+```json
+{
+  "name": "Fresh Oranges",
+  "category": { "id": "fresh_veg", "label_ar": "فواكه", "parent_id": "root" },
+  "pricing": { "price": 2500, "cost_price": 2000 },
+  "inventory": { "stock_quantity": 100, "unit_type": "kg" },
+  "attributes": [{ "key": "origin", "value": "Local", "label": "Origin" }],
+  "brand": "TOTO Farm",
+  "tags": ["fresh", "organic"]
+}
+```
+
+### Toggle Active
+**Method**: `PATCH`
+**URL**: `/products/<PRODUCT_ID>/toggle-active`
+
+---
+
+## 4. Orders
+
+### Active Orders (Market & Driver)
+**Method**: `GET`
+**URL**: `/orders/active`
+**Expected Form**: Orders with nested `payment.total_amount`, `payment.status`, and `snapshots` object for coords.
+
+### Update Order Status
+**Method**: `PATCH`
+**URL**: `/orders/<ORDER_ID>/status`
+**Body**:
+```json
+{
+  "status": "delivering", // Valid: pending, confirmed, preparing, searching, pickup, delivering, delivered, cancelled
+  "driver_id": "<ID>"
+}
+```
+
+---
+**FRONTEND STATUS:** The frontend is fully connected to these endpoints. Please finalize the backend routing on Port 3001!

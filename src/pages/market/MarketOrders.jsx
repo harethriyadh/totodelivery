@@ -1,44 +1,82 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../utils/api';
 import OrderCard from '../../components/market/OrderCard';
-import { Store, AlertTriangle } from 'lucide-react';
+import { Store, AlertTriangle, XCircle } from 'lucide-react';
+import { OrderCardSkeleton } from '../../components/shared/Skeletons';
 
 const MarketOrders = () => {
     const { isOnline } = useAuth();
-    const [orders, setOrders] = useState([
-        {
-            id: '1234',
-            customerName: 'سارة أحمد',
-            time: 'منذ 5 دقائق',
-            status: 'pending',
-            payment_method: 'cash',
-            payment_status: 'unpaid',
-            total: '45.00',
-            items: [
-                { id: 1, name: 'طماطم بلدي', quantity: 2, unavailable: false },
-                { id: 2, name: 'بصل أحمر', quantity: 1, unavailable: false },
-            ]
-        },
-        {
-            id: '5678',
-            customerName: 'فهد محمد',
-            time: 'منذ 10 دقائق',
-            status: 'pending',
-            payment_method: 'wallet',
-            payment_status: 'paid',
-            total: '12.00',
-            items: [
-                { id: 3, name: 'ليمون', quantity: 3, unavailable: false }
-            ]
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [actionError, setActionError] = useState(null);
+
+    const fetchOrders = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await apiFetch('/orders/active');
+            const data = await response.json();
+            if (response.ok) {
+                // Ensure data convention mapping handles { data: [...] } format
+                const orderArray = data.data || data.orders || (Array.isArray(data) ? data : []);
+                const processed = orderArray.map(o => ({
+                    ...o,
+                    id: o._id || o.id,
+                    short_id: o.short_id || `TOTO-${(o.id || o._id)?.toString().slice(-4)}`
+                }));
+                setOrders(processed);
+            } else {
+                setError(data.message || 'فشل تحميل الطلبات');
+            }
+        } catch (err) {
+            setError('خطأ في الاتصال بالخادم');
+        } finally {
+            setLoading(false);
         }
-    ]);
+    };
+
+    useEffect(() => {
+        if (isOnline) {
+            fetchOrders();
+            // Periodic polling every 30s
+            const interval = setInterval(fetchOrders, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [isOnline]);
+
+    const updateOrderStatus = async (orderId, newStatus) => {
+        setActionError(null);
+        try {
+            // Technical Spec: PATCH /orders/:id/status
+            const response = await apiFetch(`/orders/${orderId}/status`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (response.ok) {
+                // Update local state for immediate feedback
+                setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+            } else {
+                const data = await response.json();
+                setActionError(data.message || 'فشل الجي بي أي: حالة الطلب');
+                setTimeout(() => setActionError(null), 5000);
+            }
+        } catch (err) {
+            console.error('Status update error:', err);
+            setActionError('خطأ في الاتصال بالشبكة للمزامنة');
+            setTimeout(() => setActionError(null), 5000);
+        }
+    };
 
     const handleMarkUnavailable = (orderId, itemId) => {
+        // Technically this should be an API call to mark product as unavailable in order
+        // For now, let's keep the local update as per existing UI logic
         setOrders(orders.map(order => {
             if (order.id === orderId) {
                 const updatedItems = order.items.map(item =>
-                    item.id === itemId ? { ...item, unavailable: true } : item
+                    item.id === itemId || item.product_id === itemId ? { ...item, unavailable: true } : item
                 );
                 return { ...order, items: updatedItems };
             }
@@ -72,21 +110,46 @@ const MarketOrders = () => {
         <div className="px-6 py-6 slide-up pb-24">
             <h2 className="text-xl font-black text-neutral-900 mb-6 text-right">الطلبات النشطة</h2>
 
-            <div className="space-y-4">
-                {orders.length === 0 ? (
-                    <div className="text-center py-10 bg-neutral-50 rounded-2xl border border-dashed border-neutral-200">
-                        <p className="text-neutral-400 font-bold">لا توجد طلبات نشطة حالياً</p>
+            {actionError && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex flex-row-reverse items-start justify-between text-right animate-in fade-in slide-in-from-top-2 shadow-sm">
+                    <div className="flex flex-row-reverse items-start gap-3 flex-1">
+                        <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                        <p className="text-xs text-red-700 font-bold leading-relaxed">{actionError}</p>
                     </div>
-                ) : (
-                    orders.map(order => (
-                        <OrderCard
-                            key={order.id}
-                            order={order}
-                            onMarkUnavailable={handleMarkUnavailable}
-                        />
-                    ))
-                )}
-            </div>
+                    <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-600 transition-colors ml-2">
+                        <XCircle className="w-5 h-5" />
+                    </button>
+                </div>
+            )}
+
+            {loading && orders.length === 0 ? (
+                <div className="space-y-4">
+                    {[1, 2, 3].map((sk) => (
+                        <OrderCardSkeleton key={sk} />
+                    ))}
+                </div>
+            ) : error ? (
+                <div className="text-center py-10 bg-red-50 rounded-2xl border border-red-100 p-6">
+                    <p className="text-red-700 font-bold text-sm">{error}</p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {orders.length === 0 ? (
+                        <div className="text-center py-10 bg-neutral-50 rounded-2xl border border-dashed border-neutral-200">
+                            <p className="text-neutral-400 font-bold">لا توجد طلبات نشطة حالياً</p>
+                        </div>
+                    ) : (
+                        orders.map(order => (
+                            <OrderCard
+                                key={order.id}
+                                order={order}
+                                onMarkUnavailable={handleMarkUnavailable}
+                                onUpdateStatus={(status) => updateOrderStatus(order.id, status)}
+                            />
+                        ))
+                    )}
+                </div>
+            )}
         </div>
     );
 };

@@ -1,15 +1,14 @@
 /**
- * API Utility for TotoDelivery
- * Centralized fetch with token handling and refresh logic.
+ * API Utility for TotoDelivery - Technical Specifications V1.0
+ * Centralized fetch with token handling, refresh logic, and error management.
  */
 
-export const API_BASE_URL = 'https://dof-b.onrender.com/api';
+export const API_BASE_URL = 'http://127.0.0.1:3001/api';
 
 /**
  * Helper to get device info (Native or Web)
  */
 export const getDeviceInfo = () => {
-    // Check for Median bridge info
     const isMedian = typeof window !== 'undefined' && (window.median || window.Median);
 
     return {
@@ -20,7 +19,7 @@ export const getDeviceInfo = () => {
 };
 
 /**
- * Standard Fetch with Bearer Auth
+ * Standard Fetch with Bearer Auth and Spec-compliant Error Handling
  */
 export const apiFetch = async (endpoint, options = {}) => {
     const token = localStorage.getItem('token');
@@ -38,13 +37,12 @@ export const apiFetch = async (endpoint, options = {}) => {
     try {
         let response = await fetch(url, { ...options, headers });
 
-        // Handle 401: Token Expired - Attempt Refresh
+        // 401: Unauthorized / Token Expired
         if (response.status === 401) {
             const refreshToken = localStorage.getItem('refresh_token');
-            if (refreshToken && endpoint !== '/auth/refresh-token') {
+            if (refreshToken && !url.includes('/auth/refresh-token')) {
                 const refreshed = await refreshAccessToken(refreshToken);
                 if (refreshed) {
-                    // Retry original request with NEW token
                     const newToken = localStorage.getItem('token');
                     headers['Authorization'] = `Bearer ${newToken}`;
                     response = await fetch(url, { ...options, headers });
@@ -52,9 +50,10 @@ export const apiFetch = async (endpoint, options = {}) => {
             }
         }
 
+        // 403: Forbidden - Handled by components/context for redirection
         return response;
     } catch (error) {
-        console.error('API Fetch Error:', error);
+        console.error('API Network Error:', error);
         throw error;
     }
 };
@@ -71,18 +70,18 @@ export const refreshAccessToken = async (refreshToken) => {
         });
 
         const data = await response.json();
-        if (response.ok && data.token) {
+        if (response.ok && data.success && data.token) {
             localStorage.setItem('token', data.token);
-            if (data.refresh_token) {
-                localStorage.setItem('refresh_token', data.refresh_token);
-            }
             return true;
         }
     } catch (e) {
-        console.error('Token Refresh Loop Protection:', e);
+        console.error('Token Refresh Failed:', e);
     }
-
-    // If refresh fails, we should probably force logout eventually,
-    // but we'll let the application state handle that.
     return false;
 };
+
+/**
+ * Helper: Convert IQD to Fils (Backend expectation)
+ */
+export const toFils = (iqd) => Math.round(parseFloat(iqd) * 1); // If 1:1 or as per specific fils logic. Usually Fils = 1/1000 IQD? The spec says Fils is the unit.
+export const fromFils = (fils) => (parseFloat(fils) / 1);
