@@ -3,7 +3,7 @@
  * Centralized fetch with token handling, refresh logic, and error management.
  */
 
-export const API_BASE_URL = 'http://127.0.0.1:3001/api';
+export const API_BASE_URL = 'https://dof-b.onrender.com/api';
 
 /**
  * Helper to get device info (Native or Web)
