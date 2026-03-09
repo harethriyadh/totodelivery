@@ -3,10 +3,11 @@ import { createPortal } from 'react-dom';
 import {
     MapPin,
     User,
-    Phone,
     X,
     Save,
     LocateFixed,
+    GitBranch,
+    AlertTriangle,
 } from 'lucide-react';
 import L from 'leaflet';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -15,6 +16,7 @@ import { isWithinServiceArea } from '../../utils/geofencing';
 import { MAP_CONFIG } from '../../config/mapConfig';
 import StatusModal from '../shared/StatusModal';
 import { Store as StoreIcon, Pencil } from 'lucide-react';
+import { apiFetch } from '../../utils/api';
 
 // Premium Composite Market Icon with Edit Badge
 const marketLocationIcon = L.divIcon({
@@ -47,6 +49,8 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
     const [formData, setFormData] = useState(initialData);
     const [alertConfig, setAlertConfig] = useState({ open: false, title: '', message: '', type: 'error' });
     const [loadingGPS, setLoadingGPS] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState(null);
     const [mapCenterTrigger, setMapCenterTrigger] = useState(0);
 
     const mapContainerRef = useRef(null);
@@ -103,13 +107,39 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
         );
     };
 
-    const handleSave = () => {
-        if (!formData.ownerName?.trim()) {
-            showAlert('خطأ في البيانات', 'يرجى إدخال اسم صاحب المتجر للمتابعة.', 'error');
+    const handleSave = async () => {
+        if (!formData.market_name?.trim() && !formData.ownerName?.trim()) {
+            showAlert('خطأ في البيانات', 'يرجى إدخال اسم المتجر للمتابعة.', 'error');
             return;
         }
-        onSave(formData);
-        onClose();
+        setSaving(true);
+        setSaveError(null);
+        try {
+            const payload = {};
+            if (formData.market_name) payload.market_name = formData.market_name;
+            if (formData.branch_name) payload.branch_name = formData.branch_name;
+            if (formData.storeLocation) {
+                payload.location = {
+                    coordinates: [formData.storeLocation[1], formData.storeLocation[0]] // [lng, lat]
+                };
+            }
+            const response = await apiFetch('/profile/market', {
+                method: 'PATCH',
+                body: JSON.stringify(payload)
+            });
+            if (response.ok) {
+                const data = await response.json();
+                onSave(data?.data || formData);
+                onClose();
+            } else {
+                const errData = await response.json().catch(() => ({}));
+                setSaveError(errData.message || 'فشل حفظ التغييرات على الخادم.');
+            }
+        } catch (err) {
+            setSaveError('خطأ في الاتصال بالشبكة.');
+        } finally {
+            setSaving(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -175,46 +205,40 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                                 {loadingGPS ? 'جاري تحديد موقعك...' : 'استخدم موقعي الحالي (GPS)'}
                             </button>
 
+                            {saveError && (
+                                <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-2">
+                                    <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                                    <p className="text-xs text-red-700 font-bold">{saveError}</p>
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-1 gap-5">
                                 <div className="space-y-1.5 text-right">
-                                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mr-1">اسم صاحب المتجر</label>
+                                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mr-1">اسم المتجر</label>
                                     <div className="relative group">
                                         <User className="absolute right-5 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-primary-500 transition-colors w-4 h-4" />
                                         <input
                                             type="text"
-                                            value={formData.ownerName}
-                                            onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+                                            value={formData.market_name || formData.ownerName || ''}
+                                            onChange={(e) => setFormData({ ...formData, market_name: e.target.value, ownerName: e.target.value })}
                                             className="w-full bg-neutral-50 border border-neutral-100 rounded-xl pr-12 pl-5 py-3.5 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all text-right"
                                             dir="rtl"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                    <div className="space-y-1.5 text-right">
-                                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mr-1">رقم الهاتف</label>
-                                        <div className="relative group">
-                                            <Phone className="absolute right-5 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-primary-500 transition-colors w-4 h-4" />
-                                            <input
-                                                type="tel"
-                                                value={formData.phone1}
-                                                onChange={(e) => setFormData({ ...formData, phone1: e.target.value })}
-                                                className="w-full bg-neutral-50 border border-neutral-100 rounded-xl pr-12 pl-5 py-3.5 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all text-right"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1.5 text-right">
-                                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mr-1">عنوان المتجر</label>
-                                        <div className="relative group">
-                                            <MapPin className="absolute right-5 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-primary-500 transition-colors w-4 h-4" />
-                                            <input
-                                                type="text"
-                                                value={formData.address}
-                                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                                className="w-full bg-neutral-50 border border-neutral-100 rounded-xl pr-12 pl-5 py-3.5 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all text-right"
-                                                dir="rtl"
-                                            />
-                                        </div>
+                                <div className="space-y-1.5 text-right">
+                                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mr-1">اسم الفرع</label>
+                                    <div className="relative group">
+                                        <GitBranch className="absolute right-5 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-primary-500 transition-colors w-4 h-4" />
+                                        <input
+                                            type="text"
+                                            value={formData.branch_name || ''}
+                                            onChange={(e) => setFormData({ ...formData, branch_name: e.target.value })}
+                                            className="w-full bg-neutral-50 border border-neutral-100 rounded-xl pr-12 pl-5 py-3.5 text-sm font-bold text-neutral-900 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all text-right"
+                                            dir="rtl"
+                                            placeholder="مثال: فرع النعيم"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -224,10 +248,11 @@ const EditProfileModal = ({ isOpen, onClose, initialData, onSave }) => {
                     <div className="px-5 py-4 bg-white border-t border-neutral-100 flex items-center gap-3">
                         <button
                             onClick={handleSave}
-                            className="flex-[2] py-3.5 rounded-xl bg-primary-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary-500/20 hover:bg-primary-600 active:scale-[0.98] transition-all"
+                            disabled={saving}
+                            className="flex-[2] py-3.5 rounded-xl bg-primary-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary-500/20 hover:bg-primary-600 active:scale-[0.98] transition-all disabled:opacity-60"
                         >
-                            <Save size={18} />
-                            حفظ التغييرات
+                            {saving ? <span className="animate-spin">⏳</span> : <Save size={18} />}
+                            {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
                         </button>
                         <button
                             onClick={onClose}

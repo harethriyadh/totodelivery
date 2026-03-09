@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(null);
     const [isOnline, setIsOnline] = useState(false);
     const [marketType, setMarketType] = useState(localStorage.getItem('market_type') || null);
+    const [marketProfile, setMarketProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -35,7 +36,9 @@ export const AuthProvider = ({ children }) => {
                 })
                     .then(r => r.ok ? r.json() : null)
                     .then(data => {
-                        const type = data?.data?.market_type || data?.market_type || null;
+                        const profile = data?.data || data;
+                        const type = profile?.market_type || null;
+                        if (profile) setMarketProfile(profile);
                         if (type) {
                             setMarketType(type);
                             localStorage.setItem('market_type', type);
@@ -149,29 +152,39 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const updateMarketType = async (type) => {
+    const fetchMarketProfile = async () => {
         try {
-            const response = await apiFetch('/profile/market', {
-                method: 'PATCH',
-                body: JSON.stringify({ market_type: type })
-            });
+            const response = await apiFetch(`/profile/market?t=${Date.now()}`);
             if (response.ok) {
-                setMarketType(type);
-                localStorage.setItem('market_type', type);
-                return true;
+                const data = await response.json();
+                const profile = data?.data || data;
+                if (profile) {
+                    setMarketProfile(profile);
+                    if (profile.market_type) {
+                        setMarketType(profile.market_type);
+                        localStorage.setItem('market_type', profile.market_type);
+                    }
+                }
+                return profile;
             }
         } catch (err) {
-            console.error('Failed to update market type', err);
+            console.error('Failed to fetch market profile', err);
         }
-        return false;
+        return null;
     };
+
+    // market_type is READ-ONLY per V4.3 spec — never PATCH it
+    // Use PATCH /profile/market with market_name, branch_name, is_open, status, location only
+    const updateMarketType = null; // intentionally removed — backend ignores this field if sent
 
     const value = {
         user,
         token,
         isOnline,
         marketType,
+        marketProfile,
         toggleOnline,
+        fetchMarketProfile,
         updateMarketType,
         login,
         logout,

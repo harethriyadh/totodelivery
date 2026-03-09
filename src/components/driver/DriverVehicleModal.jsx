@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Truck, Save, Hash, Info } from 'lucide-react';
+import { X, Truck, Save, Hash, Info, Loader2 } from 'lucide-react';
 import StatusModal from '../shared/StatusModal';
+import { apiFetch } from '../../utils/api';
 
 const DriverVehicleModal = ({ isOpen, onClose, initialData, onSave }) => {
     const [formData, setFormData] = useState(initialData);
     const [alertConfig, setAlertConfig] = useState({ open: false, title: '', message: '', type: 'error' });
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         if (isOpen) setFormData(initialData);
@@ -15,7 +17,7 @@ const DriverVehicleModal = ({ isOpen, onClose, initialData, onSave }) => {
         setAlertConfig({ open: true, title, message, type });
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!formData.plateNumber?.trim()) {
             showAlert('خطأ في البيانات', 'يرجى إدخال رقم اللوحة للمتابعة.', 'error');
             return;
@@ -24,8 +26,32 @@ const DriverVehicleModal = ({ isOpen, onClose, initialData, onSave }) => {
             showAlert('خطأ في البيانات', 'يرجى إدخال نوع المركبة للمتابعة.', 'error');
             return;
         }
-        onSave(formData);
-        onClose();
+
+        setSaving(true);
+        try {
+            const response = await apiFetch('/profile/driver', {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    vehicle: {
+                        type: formData.vehicleType,
+                        plate: formData.plateNumber
+                    }
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                onSave(data.data || { vehicle: { type: formData.vehicleType, plate: formData.plateNumber } });
+                onClose();
+            } else {
+                const errData = await response.json().catch(() => ({}));
+                showAlert('فشل الحفظ', errData.message || 'حدث خطأ أثناء حفظ البيانات.', 'error');
+            }
+        } catch (err) {
+            showAlert('خطأ في الاتصال', 'يرجى التحقق من اتصالك بالإنترنت.', 'error');
+        } finally {
+            setSaving(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -94,10 +120,11 @@ const DriverVehicleModal = ({ isOpen, onClose, initialData, onSave }) => {
                     <div className="px-5 py-4 bg-white border-t border-neutral-100 flex items-center gap-3">
                         <button
                             onClick={handleSave}
-                            className="flex-[2] py-3.5 rounded-xl bg-primary-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary-500/20 hover:bg-primary-600 active:scale-[0.98] transition-all"
+                            disabled={saving}
+                            className="flex-[2] py-3.5 rounded-xl bg-primary-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary-500/20 hover:bg-primary-600 active:scale-[0.98] transition-all disabled:opacity-50"
                         >
-                            <Save size={18} />
-                            حفظ التغييرات
+                            {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                            {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
                         </button>
                         <button
                             onClick={onClose}

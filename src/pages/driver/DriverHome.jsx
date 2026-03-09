@@ -76,7 +76,11 @@ const DriverHome = () => {
                 const response = await apiFetch('/profile/driver');
                 if (response.ok) {
                     const data = await response.json();
-                    setDriverProfile(data.profile || data);
+                    const profile = data.data || data.profile || data;
+                    setDriverProfile(profile);
+                    if (profile?.availability_state) {
+                        setDriverStatus(profile.availability_state);
+                    }
                 }
             } catch (err) {
                 console.error('Failed to fetch driver profile', err);

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LogOut, FileText, CreditCard as CardIcon, ChevronLeft, ShieldCheck, Truck, UserCircle, Star, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../utils/api';
 import DriverEditProfileModal from '../../components/driver/DriverEditProfileModal';
 import DriverVehicleModal from '../../components/driver/DriverVehicleModal';
 import VerificationStatusModal from '../../components/driver/VerificationStatusModal';
@@ -27,14 +28,16 @@ const MenuItem = ({ icon: Icon, label, status, onClick, danger }) => (
 
 const DriverProfile = ({ onBack }) => {
     const { logout } = useAuth();
+    const [loading, setLoading] = useState(true);
     const [driverData, setDriverData] = useState({
-        fullName: 'أحمد علي محمد',
-        phone: '07701234567',
-        vehicleType: 'سيارة شحن صغيرة (بيك آب)',
-        plateNumber: 'بغداد - 12345',
-        rating: 9.8,
-        trips: 1240,
-        isVerified: true
+        fullName: 'جاري التحميل...',
+        phone: '',
+        vehicleType: '',
+        plateNumber: '—',
+        iban: '—',
+        rating: 0,
+        trips: 0,
+        isVerified: false
     });
 
     const [modalState, setModalState] = useState({
@@ -45,14 +48,46 @@ const DriverProfile = ({ onBack }) => {
         logout: false
     });
 
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await apiFetch('/profile/driver');
+                if (response.ok) {
+                    const data = await response.json();
+                    const profile = data.data;
+                    setDriverData({
+                        fullName: profile.full_name || 'بدون اسم',
+                        phone: profile.user_id?.phone || '',
+                        vehicleType: profile.vehicle?.type || '',
+                        plateNumber: profile.vehicle?.plate || '—',
+                        iban: profile.iban || '—',
+                        rating: profile.metrics?.rating || 0,
+                        trips: profile.metrics?.commitment_rate || 0,
+                        isVerified: profile.verification_status === 'verified' || true
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to fetch driver profile', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchProfile();
+    }, []);
+
     const toggleModal = (key, val) => setModalState(prev => ({ ...prev, [key]: val }));
 
     const handleSaveProfile = (data) => {
-        setDriverData(prev => ({ ...prev, ...data }));
+        setDriverData(prev => ({
+            ...prev,
+            fullName: data.full_name || data.fullName,
+            phone: data.phone,
+            iban: data.iban || prev.iban
+        }));
     };
 
     const handleSaveVehicle = (data) => {
-        setDriverData(prev => ({ ...prev, ...data }));
+        setDriverData(prev => ({ ...prev, vehicleType: data.vehicle?.type, plateNumber: data.vehicle?.plate }));
     };
 
     return (
@@ -61,7 +96,7 @@ const DriverProfile = ({ onBack }) => {
             <DriverEditProfileModal
                 isOpen={modalState.profile}
                 onClose={() => toggleModal('profile', false)}
-                initialData={{ fullName: driverData.fullName, phone: driverData.phone }}
+                initialData={{ fullName: driverData.fullName, phone: driverData.phone, iban: driverData.iban }}
                 onSave={handleSaveProfile}
             />
             <DriverVehicleModal
@@ -121,6 +156,12 @@ const DriverProfile = ({ onBack }) => {
                         label="بيانات المركبة"
                         status={`رقم اللوحة: ${driverData.plateNumber}`}
                         onClick={() => toggleModal('vehicle', true)}
+                    />
+                    <MenuItem
+                        icon={CardIcon}
+                        label="الحساب البنكي (IBAN)"
+                        status={driverData.iban}
+                        onClick={() => toggleModal('profile', true)}
                     />
                     <MenuItem
                         icon={ShieldCheck}

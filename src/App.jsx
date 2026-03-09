@@ -10,151 +10,225 @@ const LoginScreen = () => {
   const [selectedRole, setSelectedRole] = useState(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [serverStatus, setServerStatus] = useState('checking'); // checking, online, offline
+  const [isLoading, setIsLoading] = useState(false);
+  const [shakeTrigger, setShakeTrigger] = useState(false);
+  const [inputErrors, setInputErrors] = useState({ username: false, password: false });
+  const [toast, setToast] = useState({ show: false, message: '', type: 'error' });
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
+  // Connectivity Listener
   React.useEffect(() => {
-    const checkServer = async () => {
-      try {
-        const response = await fetch('http://localhost:3001/test-server', { mode: 'no-cors' });
-        // Since we use no-cors, we can't see the status, but if it doesn't throw, it's likely reachable
-        setServerStatus('online');
-      } catch (err) {
-        setServerStatus('offline');
-      }
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => {
+      setIsOnline(false);
+      showToast('Connection issue. Please check your internet.', 'error');
     };
-    checkServer();
-    const interval = setInterval(checkServer, 10000); // Check every 10s
-    return () => clearInterval(interval);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
+  const showToast = (message, type = 'error') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 4000);
+  };
+
+  const handleInputFocus = (field) => {
+    setInputErrors(prev => ({ ...prev, [field]: false }));
+  };
+
   const handleLogin = async () => {
+    if (isLoading) return;
+
     if (!selectedRole) {
-      setError('يرجى اختيار نوع الحساب');
+      showToast('يرجى اختيار نوع الحساب للمتابعة', 'error');
       return;
     }
 
-    if (!username.trim()) {
-      setError('يرجى إدخال اسم المستخدم');
+    const errors = {
+      username: !username.trim(),
+      password: !password.trim()
+    };
+
+    if (errors.username || errors.password) {
+      setInputErrors(errors);
+      setShakeTrigger(true);
+      setTimeout(() => setShakeTrigger(false), 500);
       return;
     }
 
-    if (!password.trim()) {
-      setError('يرجى إدخال كلمة المرور');
+    if (!isOnline) {
+      showToast('Connection issue. Please check your internet.', 'error');
       return;
     }
 
-    // Platform Segregation Update: Map role to platform identifier
-    const platform = selectedRole === 'market_owner' ? 'MARKET_DASHBOARD' : 'DRIVER_APP';
+    setIsLoading(true);
+    setInputErrors({ username: false, password: false });
 
-    const result = await login(username, password, platform);
+    try {
+      const platform = selectedRole === 'market_owner' ? 'MARKET_DASHBOARD' : 'DRIVER_APP';
+      const result = await login(username, password, platform);
 
-    if (result.success) {
-      setError('');
-    } else {
-      setError(result.message || 'اسم المستخدم أو كلمة المرور غير صحيحة');
+      if (result.success) {
+        // Success handled by AuthContext updating state
+      } else {
+        setShakeTrigger(true);
+        setInputErrors({ username: true, password: true });
+        showToast('Invalid username or password', 'error');
+        setTimeout(() => setShakeTrigger(false), 500);
+      }
+    } catch (err) {
+      showToast('We’re having trouble reaching the server. Please try again shortly.', 'error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const isFormFilled = !!(username.trim() && password.trim());
+
   return (
     <div className="min-h-screen bg-neutral-900 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Background Layer */}
       <div className="absolute top-0 left-0 w-full h-full bg-[url('https://images.unsplash.com/photo-1556761175-4b46a572b786?q=80&w=2874&auto=format&fit=crop')] bg-cover bg-center opacity-20 blur-sm"></div>
 
-      <div className="z-10 w-full max-w-sm space-y-8 animate-slide-up">
-        <div className="text-center">
-          <h1 className="text-4xl font-black text-white mb-2 tracking-tighter">توتو ديليفري</h1>
-          <p className="text-neutral-400 font-bold italic">دخول النظام الآمن</p>
+      {/* Connectivity Banner (Top Snackbar) */}
+      {!isOnline && (
+        <div className="fixed top-0 inset-x-0 z-50 bg-red-600/90 backdrop-blur-md py-2 px-6 flex items-center justify-center gap-2 animate-slide-in-top">
+          <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+          <span className="text-[11px] font-black text-white uppercase tracking-widest">
+            OFFLINE • CONNECTION PROBLEM
+          </span>
+        </div>
+      )}
 
-          {serverStatus === 'online' && (
-            <div className="mt-4 flex items-center justify-center gap-2 animate-fade-in">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                Server Live
-              </span>
-            </div>
-          )}
+      {/* Toast Notification (Bottom) */}
+      {toast.show && (
+        <div className="fixed bottom-10 z-[60] px-6 py-4 bg-neutral-800 border border-white/10 rounded-2xl shadow-2xl flex items-center gap-4 animate-slide-in-bottom">
+          <div className={clsx(
+            "w-2 h-2 rounded-full",
+            toast.type === 'error' ? "bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]" : "bg-emerald-500"
+          )}></div>
+          <span className="text-sm font-bold text-white pr-2">{toast.message}</span>
+        </div>
+      )}
+
+      <div className="z-10 w-full max-w-sm space-y-12 animate-slide-up">
+        {/* Logo & Headline */}
+        <div className="text-center group">
+          <div className="w-24 h-24 bg-white/5 rounded-[40px] flex items-center justify-center mx-auto mb-6 relative border border-white/5 group-hover:bg-primary-500/10 transition-all duration-700 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <img src="/images/d-logo.svg" alt="Tutu" className="h-12 w-auto relative z-10" />
+          </div>
+          <h1 className="text-5xl font-black text-white mb-2 tracking-tighter opacity-90">توتو ديليفري</h1>
+          <p className="text-neutral-500 font-bold italic text-sm tracking-wide">نظام التوزيع الذكي المتكامل</p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {!selectedRole ? (
-            <div className="space-y-6 animate-fade-in">
-              <p className="text-neutral-400 text-center text-sm font-bold mb-4">اختر نوع الحساب للمتابعة</p>
+            <div className="space-y-8 animate-fade-in">
+              <p className="text-neutral-400 text-center text-sm font-bold">يرجى اختيار هوية المستخدم للمتابعة</p>
               <div className="flex gap-4">
                 <button
-                  onClick={() => { setSelectedRole('driver'); setError(''); }}
-                  className="flex-1 p-6 rounded-3xl border border-white/10 bg-white/5 hover:bg-primary-500/10 hover:border-primary-500/50 transition-all flex flex-col items-center gap-3 group"
+                  onClick={() => setSelectedRole('driver')}
+                  className="flex-1 p-8 rounded-3xl border border-white/5 bg-white/5 hover:bg-primary-500/10 hover:border-primary-500/30 transition-all flex flex-col items-center gap-4 group"
                 >
-                  <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
+                  <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white group-hover:scale-110 transition-all duration-500 shadow-xl group-hover:shadow-primary-500/20">
                     <User className="w-8 h-8" />
                   </div>
-                  <span className="text-sm font-black text-white">كابتن</span>
+                  <span className="text-xs font-black text-neutral-300 uppercase tracking-widest group-hover:text-white">كابتن (Driver)</span>
                 </button>
                 <button
-                  onClick={() => { setSelectedRole('market_owner'); setError(''); }}
-                  className="flex-1 p-6 rounded-3xl border border-white/10 bg-white/5 hover:bg-orange-500/10 hover:border-orange-500/50 transition-all flex flex-col items-center gap-3 group"
+                  onClick={() => setSelectedRole('market_owner')}
+                  className="flex-1 p-8 rounded-3xl border border-white/5 bg-white/5 hover:bg-orange-500/10 hover:border-orange-500/30 transition-all flex flex-col items-center gap-4 group"
                 >
-                  <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-all">
+                  <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white group-hover:scale-110 transition-all duration-500 shadow-xl group-hover:shadow-orange-500/20">
                     <Store className="w-8 h-8" />
                   </div>
-                  <span className="text-sm font-black text-white">صاحب متجر</span>
+                  <span className="text-xs font-black text-neutral-300 uppercase tracking-widest group-hover:text-white">تاجر (Market)</span>
                 </button>
               </div>
             </div>
           ) : (
-            <div className="space-y-4 pt-2 animate-slide-up">
-              <div className="flex items-center gap-3 mb-4 bg-white/5 p-4 rounded-2xl border border-white/10">
+            <div className="space-y-6 pt-2 animate-slide-up">
+              {/* Active Role Identifier */}
+              <div className="flex items-center gap-4 bg-white/5 p-5 rounded-3xl border border-white/5 backdrop-blur-xl">
                 <div className={clsx(
-                  "w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg",
-                  selectedRole === 'driver' ? "bg-primary-500 shadow-primary-500/20" : "bg-orange-500 shadow-orange-500/20"
+                  "w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-2xl transition-all duration-500",
+                  selectedRole === 'driver' ? "bg-primary-500 shadow-primary-500/30" : "bg-orange-500 shadow-orange-500/30"
                 )}>
-                  {selectedRole === 'driver' ? <User className="w-6 h-6" /> : <Store className="w-6 h-6" />}
+                  {selectedRole === 'driver' ? <User size={28} /> : <Store size={28} />}
                 </div>
                 <div>
-                  <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">تسجيل الدخول كـ</p>
-                  <p className="text-sm font-extrabold text-white">{selectedRole === 'driver' ? 'كابتن (سائق)' : 'صاحب متجر'}</p>
+                  <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest mb-0.5">تسجيل الدخول كـ</p>
+                  <p className="text-base font-extrabold text-white">{selectedRole === 'driver' ? 'كابتن (سائق)' : 'صاحب متجر'}</p>
                 </div>
+                <button
+                  onClick={() => { setSelectedRole(null); setUsername(''); setPassword(''); setInputErrors({ username: false, password: false }); }}
+                  className="mr-auto text-[10px] font-black text-neutral-500 hover:text-white uppercase transition-colors pt-1"
+                >
+                  تغيير
+                </button>
               </div>
 
-              <div className="space-y-3">
+              {/* Input Fields */}
+              <div className={clsx("space-y-4", shakeTrigger && "animate-shake")}>
                 <div className="relative group">
-                  <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-primary-500 transition-colors" />
+                  <User className={clsx(
+                    "absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors",
+                    inputErrors.username ? "text-red-500" : "text-neutral-500 group-focus-within:text-primary-500"
+                  )} />
                   <input
                     type="text"
                     placeholder="اسم المستخدم"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-6 py-4 text-white font-bold outline-none focus:border-primary-500 focus:bg-white/10 transition-all text-right"
+                    onChange={(e) => { setUsername(e.target.value); handleInputFocus('username'); }}
+                    className={clsx(
+                      "w-full bg-white/5 border rounded-2xl pl-14 pr-6 py-5 text-white font-bold outline-none transition-all text-right",
+                      inputErrors.username ? "border-red-700/60 bg-red-500/5" : "border-white/5 focus:border-primary-500 focus:bg-white/10"
+                    )}
                   />
                 </div>
                 <div className="relative group">
-                  <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-primary-500 transition-colors" />
+                  <Lock className={clsx(
+                    "absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors",
+                    inputErrors.password ? "text-red-500" : "text-neutral-500 group-focus-within:text-primary-500"
+                  )} />
                   <input
                     type="password"
                     placeholder="كلمة المرور"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-6 py-4 text-white font-bold outline-none focus:border-primary-500 focus:bg-white/10 transition-all text-right tracking-[0.5em]"
+                    onChange={(e) => { setPassword(e.target.value); handleInputFocus('password'); }}
+                    className={clsx(
+                      "w-full bg-white/5 border rounded-2xl pl-14 pr-6 py-5 text-white font-bold outline-none transition-all text-right",
+                      inputErrors.password ? "border-red-700/60 bg-red-500/5" : "border-white/5 focus:border-primary-500 focus:bg-white/10"
+                    )}
                   />
                 </div>
               </div>
 
-              {error && <p className="text-red-400 text-[10px] font-bold text-center animate-pulse pt-2">{error}</p>}
-
+              {/* Action Button */}
               <button
                 onClick={handleLogin}
+                disabled={!isFormFilled || isLoading}
                 className={clsx(
-                  "w-full py-5 text-lg font-black mt-4 shadow-2xl rounded-2xl transition-all active:scale-[0.98]",
-                  selectedRole === 'driver' ? "btn-primary" : "bg-orange-600 hover:bg-orange-500 text-white"
+                  "w-full py-5 text-lg font-black mt-4 shadow-2xl rounded-2xl transition-all relative overflow-hidden flex items-center justify-center",
+                  !isFormFilled || isLoading ? "bg-white/10 text-white/30 cursor-not-allowed opacity-50" : (selectedRole === 'driver' ? "btn-primary" : "bg-orange-600 hover:bg-orange-500 text-white active:scale-[0.98]")
                 )}
               >
-                دخول للنظام
+                {isLoading ? (
+                  <div className="loader-spinner"></div>
+                ) : (
+                  'دخول للنظام'
+                )}
               </button>
 
-              <p className="text-[10px] text-neutral-500 text-center font-bold pt-4">
-                تأكد من إدخال بياناتك الصحيحة للمتابعة
+              <p className="text-[10px] text-neutral-600 text-center font-bold pt-4 uppercase tracking-[0.2em]">
+                Secure Cloud Gate 4.3.0
               </p>
             </div>
           )}
@@ -163,6 +237,7 @@ const LoginScreen = () => {
     </div>
   );
 };
+
 
 const AppContent = () => {
   const { user, token, loading, logout } = useAuth();

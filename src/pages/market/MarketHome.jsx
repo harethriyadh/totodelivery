@@ -6,7 +6,7 @@ import { Package, TrendingUp, Clock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const MarketHome = () => {
-    const { user, isOnline, toggleOnline } = useAuth();
+    const { user, isOnline, toggleOnline, marketProfile } = useAuth();
 
     const topItems = [
         { id: 1, name: 'طماطم بلدي', sales: 45 },
@@ -20,9 +20,11 @@ const MarketHome = () => {
                 <MarketStatusToggle isOnline={isOnline} onToggle={toggleOnline} />
                 <div className="text-right">
                     <h3 className="text-sm font-black text-neutral-900 leading-none">
-                        {user?.username === 'market' ? 'توتو ماركت' : (user?.username || 'متجري')}
+                        {marketProfile?.market_name || (user?.username === 'market' ? 'توتو ماركت' : (user?.username || 'متجري'))}
                     </h3>
-                    <p className="text-[10px] text-primary-500 font-bold uppercase mt-1">فرع النعيم</p>
+                    <p className="text-[10px] text-primary-500 font-bold uppercase mt-1">
+                        {marketProfile?.branch_name || 'الفرع الرئيسي'}
+                    </p>
                 </div>
             </div>
 

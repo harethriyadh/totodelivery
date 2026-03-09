@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     LogOut,
     MapPin,
@@ -9,6 +9,8 @@ import {
     ChevronDown,
     Check,
     Loader2,
+    GitBranch,
+    ShieldCheck
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../context/AuthContext';
@@ -26,28 +28,51 @@ const MARKET_TYPES = [
     { value: 'other', label: 'أخرى', emoji: '🏪' },
 ];
 
+const MARKET_TYPE_LABELS = MARKET_TYPES.reduce((acc, curr) => {
+    acc[curr.value] = curr;
+    return acc;
+}, {});
+
 const MarketProfile = () => {
-    const { logout, marketType, updateMarketType } = useAuth();
+    const { logout, marketType, fetchMarketProfile } = useAuth();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-    const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
-    const [typeLoading, setTypeLoading] = useState(false);
+    const [profileLoading, setProfileLoading] = useState(true);
+    const [liveProfile, setLiveProfile] = useState(null);
     const [userData, setUserData] = useState({
-        ownerName: 'حارث الرياض',
-        phone1: '07701234567',
-        address: 'حي النعيم، شارع 45، بناية 12',
+        ownerName: '',
+        market_name: '',
+        branch_name: '',
+        address: '',
         storeLocation: [SERVICE_AREA.center.lat, SERVICE_AREA.center.lng]
     });
 
-    const currentType = MARKET_TYPES.find(t => t.value === marketType);
+    // Load live profile on mount
+    useEffect(() => {
+        const load = async () => {
+            setProfileLoading(true);
+            const profile = await fetchMarketProfile();
+            if (profile) {
+                setLiveProfile(profile);
+                setUserData(prev => ({
+                    ...prev,
+                    ownerName: profile.market_name || prev.ownerName,
+                    market_name: profile.market_name || '',
+                    branch_name: profile.branch_name || '',
+                    storeLocation: profile.location?.coordinates
+                        ? [profile.location.coordinates[1], profile.location.coordinates[0]] // [lat, lng]
+                        : prev.storeLocation
+                }));
+            }
+            setProfileLoading(false);
+        };
+        load();
+    }, []);
 
-    const handleTypeSelect = async (type) => {
-        setIsTypeDropdownOpen(false);
-        if (type === marketType) return;
-        setTypeLoading(true);
-        await updateMarketType(type);
-        setTypeLoading(false);
-    };
+    const typeInfo = MARKET_TYPE_LABELS[marketType] || null;
+    const verificationStatus = liveProfile?.verification_status || null;
+    const isVerified = verificationStatus === 'verified';
+    const statusLabel = { active: 'نشط', inactive: 'غير نشط', busy: 'مشغول' }[liveProfile?.status] || '';
 
     return (
         <div className="flex flex-col h-full bg-[#fcfcfc] pb-24">
@@ -61,7 +86,19 @@ const MarketProfile = () => {
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
                 initialData={userData}
-                onSave={(data) => setUserData(data)}
+                onSave={(updatedData) => {
+                    const profile = updatedData?.data || updatedData;
+                    setLiveProfile(profile);
+                    setUserData({
+                        ownerName: profile.market_name || '',
+                        market_name: profile.market_name || '',
+                        branch_name: profile.branch_name || '',
+                        address: '',
+                        storeLocation: profile.location?.coordinates
+                            ? [profile.location.coordinates[1], profile.location.coordinates[0]] // [lat, lng]
+                            : userData.storeLocation
+                    });
+                }}
             />
 
             <div className="pt-16 pb-10 flex flex-col items-center relative px-6">
@@ -79,102 +116,75 @@ const MarketProfile = () => {
                     </div>
                 </div>
 
-                <h3 className="text-2xl font-black text-neutral-900 mt-6 tracking-tight text-center">توتو ماركت</h3>
+                <h3 className="text-2xl font-black text-neutral-900 mt-6 tracking-tight text-center">
+                    {liveProfile?.market_name || 'توتو ماركت'}
+                </h3>
+                <p className="text-xs font-black text-neutral-400 mt-1">
+                    {liveProfile?.branch_name || ''}
+                </p>
                 <div className="flex items-center gap-2 mt-2">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[11px] font-black text-neutral-400 uppercase tracking-widest">المتجر موثق</span>
+                    <span className={clsx("w-2 h-2 rounded-full", isVerified ? "bg-green-500 animate-pulse" : "bg-yellow-400")} />
+                    <span className="text-[11px] font-black text-neutral-400 uppercase tracking-widest">
+                        {isVerified ? 'المتجر موثق' : 'قيد التوثيق'}
+                    </span>
                 </div>
-
-                {/* Market Type Badge */}
-                {currentType && (
+                {/* Market Type Badge (READ-ONLY display) */}
+                {typeInfo && (
                     <div className="mt-3 px-4 py-1.5 bg-primary-50 border border-primary-100 rounded-full flex items-center gap-2">
-                        <span className="text-base">{currentType.emoji}</span>
-                        <span className="text-xs font-black text-primary-600">{currentType.label}</span>
+                        <span className="text-base">{typeInfo.emoji}</span>
+                        <span className="text-xs font-black text-primary-600">{typeInfo.label}</span>
                     </div>
                 )}
             </div>
 
             <div className="px-6 space-y-6">
                 <div className="bg-white rounded-[32px] border border-neutral-100 shadow-sm divide-y divide-neutral-50 overflow-hidden">
-                    <div className="p-5 flex items-center justify-between">
-                        <div className="text-right">
-                            <p className="text-[10px] font-black text-neutral-400 uppercase">الاسم الكامل</p>
-                            <p className="text-sm font-bold text-neutral-900 mt-0.5">{userData.ownerName}</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-neutral-400">
-                            <User size={18} />
-                        </div>
-                    </div>
-                    <div className="p-5 flex items-center justify-between">
-                        <div className="text-right">
-                            <p className="text-[10px] font-black text-neutral-400 uppercase">رقم الهاتف</p>
-                            <p className="text-sm font-bold text-neutral-900 mt-0.5">{userData.phone1}</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-neutral-400">
-                            <Phone size={18} />
-                        </div>
-                    </div>
-                    <div className="p-5 flex items-center justify-between">
-                        <div className="text-right">
-                            <p className="text-[10px] font-black text-neutral-400 uppercase">الموقع الحالي</p>
-                            <p className="text-sm font-bold text-neutral-900 mt-0.5">{userData.address}</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-neutral-400">
-                            <MapPin size={18} />
-                        </div>
-                    </div>
-
-                    {/* Market Type Selector Row */}
-                    <div className="p-5 relative">
-                        <div className="flex items-center justify-between">
-                            <div className="text-right flex-1">
-                                <p className="text-[10px] font-black text-neutral-400 uppercase">نوع المتجر</p>
-                            </div>
-                            <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-lg">
-                                {currentType ? currentType.emoji : '🏪'}
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
-                            disabled={typeLoading}
-                            className={clsx(
-                                "w-full mt-3 bg-[#f9f9f9] border rounded-xl px-4 py-3.5 text-sm font-bold text-neutral-900 flex items-center justify-between transition-all",
-                                isTypeDropdownOpen ? "border-primary-400 ring-4 ring-primary-500/5" : "border-neutral-100"
-                            )}
-                        >
-                            <ChevronDown className={clsx("w-4 h-4 text-neutral-400 transition-transform duration-300", isTypeDropdownOpen && "rotate-180")} />
-                            <span className="flex items-center gap-2">
-                                {typeLoading
-                                    ? <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-                                    : <span>{currentType ? `${currentType.emoji} ${currentType.label}` : 'اختر نوع المتجر'}</span>
-                                }
-                            </span>
-                        </button>
-
-                        {isTypeDropdownOpen && (
-                            <>
-                                <div className="fixed inset-0 z-40" onClick={() => setIsTypeDropdownOpen(false)} />
-                                <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-neutral-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                                    {MARKET_TYPES.map((t) => (
-                                        <button
-                                            key={t.value}
-                                            onClick={() => handleTypeSelect(t.value)}
-                                            className={clsx(
-                                                "w-full flex items-center justify-between px-4 py-3.5 text-sm font-bold transition-colors text-right",
-                                                marketType === t.value ? "bg-primary-50 text-primary-700" : "text-neutral-700 hover:bg-neutral-50"
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-base">{t.emoji}</span>
-                                                <span>{t.label}</span>
-                                            </div>
-                                            {marketType === t.value && <Check className="w-4 h-4 text-primary-500" strokeWidth={3} />}
-                                        </button>
-                                    ))}
+                    {profileLoading ? (
+                        <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary-400" /></div>
+                    ) : (
+                        <>
+                            <div className="p-5 flex items-center justify-between">
+                                <div className="text-right">
+                                    <p className="text-[10px] font-black text-neutral-400 uppercase">اسم المتجر</p>
+                                    <p className="text-sm font-bold text-neutral-900 mt-0.5">{liveProfile?.market_name || '—'}</p>
                                 </div>
-                            </>
-                        )}
-                    </div>
+                                <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-neutral-400">
+                                    <Store size={18} />
+                                </div>
+                            </div>
+                            <div className="p-5 flex items-center justify-between border-t border-neutral-50">
+                                <div className="text-right">
+                                    <p className="text-[10px] font-black text-neutral-400 uppercase">الفرع</p>
+                                    <p className="text-sm font-bold text-neutral-900 mt-0.5">{liveProfile?.branch_name || '—'}</p>
+                                </div>
+                                <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-neutral-400">
+                                    <GitBranch size={18} />
+                                </div>
+                            </div>
+                            <div className="p-5 flex items-center justify-between border-t border-neutral-50">
+                                <div className="text-right">
+                                    <p className="text-[10px] font-black text-neutral-400 uppercase">حالة التوثيق</p>
+                                    <p className={clsx("text-sm font-bold mt-0.5", isVerified ? "text-green-600" : "text-yellow-600")}>
+                                        {isVerified ? 'موثق ✓' : 'قيد المراجعة'}
+                                    </p>
+                                </div>
+                                <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-neutral-400">
+                                    <ShieldCheck size={18} />
+                                </div>
+                            </div>
+                            {statusLabel ? (
+                                <div className="p-5 flex items-center justify-between border-t border-neutral-50">
+                                    <div className="text-right">
+                                        <p className="text-[10px] font-black text-neutral-400 uppercase">حالة الحساب</p>
+                                        <p className="text-sm font-bold text-neutral-900 mt-0.5">{statusLabel}</p>
+                                    </div>
+                                    <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-neutral-400">
+                                        <User size={18} />
+                                    </div>
+                                </div>
+                            ) : null}
+                        </>
+                    )}
                 </div>
 
                 <button
