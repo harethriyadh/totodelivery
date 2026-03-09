@@ -19,7 +19,7 @@ const ActionSlider = ({ label, onComplete, color = '#49A06D', disabled }) => {
         if (!isDragging.current || disabled || isComplete) return;
         const currentClientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
 
-        // In RTL (Right to Left): 
+        // In RTL (Right to Lefta): 
         // We start on the right. Moving left means currentClientX < startX.
         // deltaX = startX - currentClientX (this will be positive as we move left)
         const deltaX = startX.current - currentClientX;
