@@ -1,0 +1,79 @@
+TOTO DELIVERY - NEW PRODUCT FORM FIELDS (MARKET OWNER)
+========================================================
+This document lists the required fields and options for a market owner to add a new product in the Tutu application.
+
+1. PRODUCT IMAGE (صورة المنتج)
+-------------------------------
+- Description: Visual representation of the product.
+- Input Type: File upload (Image).
+- Requirement: Optional but highly recommended.
+
+2. PRODUCT NAME (اسم المنتج)
+-------------------------------
+- Description: The display name of the item.
+- Input Type: Text.
+- Placeholder: "مثال: طماطم بلدي" (Example: Local Tomatoes).
+
+3. PRICE (السعر)
+-------------------------------
+- Description: The selling price of the product.
+- Input Type: Number (Decimal).
+- Currency: د.ع (IQD).
+- Placeholder: "0.00".
+
+4. UNIT (الوحدة)
+-------------------------------
+- Description: Measurement unit for the product.
+- Input Type: Dropdown list.
+- Options:
+    * كجم (Kilogram)
+    * حبة (Piece)
+    * علبة (Bottle/Box)
+    * كرتون (Carton/Pack)
+    * غرام (Gram)
+
+5. CATEGORY (القسم)
+-------------------------------
+- Description: The category where the product will be listed.
+- Input Type: Dropdown list.
+- Options:
+    * خضار (Vegetables)
+    * فواكه (Fruits)
+    * لحوم (Meat)
+    * مخبوزات (Bakery)
+    * مكياج (Makeup/Beauty)
+
+6. PRODUCT DESCRIPTION (وصف المنتج)
+-------------------------------
+- Description: A short description of the product's details.
+- Input Type: Multiline Text area.
+- Placeholder: "وصف قصير للمنتج..." (Short description of the product...).
+
+7. TEXTURE [FOR BEAUTY PRODUCTS] (القوام)
+-----------------------------------------
+- Description: The feel or finish of the product.
+- Input Type: Toggle button.
+- Options:
+    * مات (Matte)
+    * شيمر/لامع (Shimmer/Shiny)
+
+8. COLORS [FOR BEAUTY PRODUCTS] (اللون المناسب)
+-----------------------------------------------
+- Description: Selection of available colors for the product.
+- Input Type: Color picker or swatch selection.
+- Functionality: Allows adding multiple hex color values.
+
+9. PRODUCT FEATURES (مميزات المنتج)
+-------------------------------
+- Description: Special highlights or qualities of the product.
+- Input Type: Selectable badges (Multiple selection).
+- Options:
+    * عضوي ١٠٠٪ (100% Organic)
+    * مستورد طازج (Fresh Imported)
+    * جودة عالية (High Quality)
+
+========================================================
+TECHNICAL NOTES:
+- Form is RTL (Right-to-Left) aligned.
+- All fields are validated before submission.
+- Logic is managed in AddItemModal.jsx within the React frontend.

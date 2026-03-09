@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }) => {
             if (response.status === 403) {
                 return {
                     success: false,
-                    message: 'Unauthorized: Your account does not have access to this platform.'
+                    message: 'غير مصرح: حسابك لا يملك صلاحية الوصول لهذه المنصة.'
                 };
             }
 
@@ -94,12 +94,12 @@ export const AuthProvider = ({ children }) => {
             } else {
                 return {
                     success: false,
-                    message: data.message || 'فشل تسجيل الدخول: يرجى التحقق من البيانات'
+                    message: data.message || 'اسم المستخدم أو كلمة المرور غير صحيحة'
                 };
             }
         } catch (error) {
             console.error('Login Error:', error);
-            return { success: false, message: 'خطأ في الاتصال بالخادم. تأكد من تشغيل الـ Backend' };
+            return { success: false, message: 'نواجه مشكلة في الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.' };
         }
     };
 

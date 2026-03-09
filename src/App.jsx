@@ -21,7 +21,7 @@ const LoginScreen = () => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => {
       setIsOnline(false);
-      showToast('Connection issue. Please check your internet.', 'error');
+      showToast('مشكلة في الاتصال. يرجى التحقق من الإنترنت.', 'error');
     };
 
     window.addEventListener('online', handleOnline);
@@ -63,7 +63,7 @@ const LoginScreen = () => {
     }
 
     if (!isOnline) {
-      showToast('Connection issue. Please check your internet.', 'error');
+      showToast('مشكلة في الاتصال. يرجى التحقق من الإنترنت.', 'error');
       return;
     }
 
@@ -79,11 +79,11 @@ const LoginScreen = () => {
       } else {
         setShakeTrigger(true);
         setInputErrors({ username: true, password: true });
-        showToast('Invalid username or password', 'error');
+        showToast('اسم المستخدم أو كلمة المرور غير صحيحة', 'error');
         setTimeout(() => setShakeTrigger(false), 500);
       }
     } catch (err) {
-      showToast('We’re having trouble reaching the server. Please try again shortly.', 'error');
+      showToast('نواجه مشكلة في الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -98,17 +98,17 @@ const LoginScreen = () => {
 
       {/* Connectivity Banner (Top Snackbar) */}
       {!isOnline && (
-        <div className="fixed top-0 inset-x-0 z-50 bg-red-600/90 backdrop-blur-md py-2 px-6 flex items-center justify-center gap-2 animate-slide-in-top">
+        <div dir="rtl" className="fixed top-0 inset-x-0 z-50 bg-red-600/90 backdrop-blur-md py-2 px-6 flex items-center justify-center gap-2 animate-slide-in-top">
           <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
           <span className="text-[11px] font-black text-white uppercase tracking-widest">
-            OFFLINE • CONNECTION PROBLEM
+            غير متصل • مشكلة في الاتصال
           </span>
         </div>
       )}
 
       {/* Toast Notification (Bottom) */}
       {toast.show && (
-        <div className="fixed bottom-10 z-[60] px-6 py-4 bg-neutral-800 border border-white/10 rounded-2xl shadow-2xl flex items-center gap-4 animate-slide-in-bottom">
+        <div dir="rtl" className="fixed bottom-10 z-[60] px-6 py-4 bg-neutral-800 border border-white/10 rounded-2xl shadow-2xl flex items-center gap-4 animate-slide-in-bottom text-right">
           <div className={clsx(
             "w-2 h-2 rounded-full",
             toast.type === 'error' ? "bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]" : "bg-emerald-500"
@@ -140,7 +140,7 @@ const LoginScreen = () => {
                   <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white group-hover:scale-110 transition-all duration-500 shadow-xl group-hover:shadow-primary-500/20">
                     <User className="w-8 h-8" />
                   </div>
-                  <span className="text-xs font-black text-neutral-300 uppercase tracking-widest group-hover:text-white">كابتن (Driver)</span>
+                  <span className="text-xs font-black text-neutral-300 uppercase tracking-widest group-hover:text-white">كابتن (سائق)</span>
                 </button>
                 <button
                   onClick={() => setSelectedRole('market_owner')}
@@ -149,7 +149,7 @@ const LoginScreen = () => {
                   <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white group-hover:scale-110 transition-all duration-500 shadow-xl group-hover:shadow-orange-500/20">
                     <Store className="w-8 h-8" />
                   </div>
-                  <span className="text-xs font-black text-neutral-300 uppercase tracking-widest group-hover:text-white">تاجر (Market)</span>
+                  <span className="text-xs font-black text-neutral-300 uppercase tracking-widest group-hover:text-white">تاجر (متجر)</span>
                 </button>
               </div>
             </div>
@@ -228,7 +228,7 @@ const LoginScreen = () => {
               </button>
 
               <p className="text-[10px] text-neutral-600 text-center font-bold pt-4 uppercase tracking-[0.2em]">
-                Secure Cloud Gate 4.3.0
+                بوابة السحابة الآمنة 4.3.0
               </p>
             </div>
           )}

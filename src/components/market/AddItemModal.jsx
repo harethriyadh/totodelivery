@@ -4,8 +4,10 @@ import { createPortal } from 'react-dom';
 import { X, Save, Image, Plus, ChevronDown, Check, AlertTriangle, XCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiFetch } from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 
 const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
+    const { marketType } = useAuth();
     const fileInputRef = useRef(null);
     const unitDropdownRef = useRef(null);
     const [isUnitOpen, setIsUnitOpen] = useState(false);
@@ -27,7 +29,27 @@ const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
 
     const units = ['كجم', 'حبة', 'علبة', 'كرتون', 'غرام'];
     const categories = ['خضار', 'فواكه', 'لحوم', 'مخبوزات', 'مكياج'];
-    const availableBadges = ['عضوي ١٠٠٪', 'مستورد طازج', 'جودة عالية'];
+
+    // Feature Badge Filtering Logic (Field 9)
+    const getVisibleBadges = () => {
+        const badges = [];
+        // Only show 'عضوي ١٠٠٪' if the store is 'fruits_veg'
+        if (marketType === 'fruits_veg') badges.push('عضوي ١٠٠٪');
+        // Only show 'مستورد طازج' for all types
+        badges.push('مستورد طازج');
+        // Only show 'جودة عالية' for non-food categories (Makeup, Bakery [assuming non-produce], etc.)
+        if (marketType !== 'fruits_veg' && marketType !== 'groceries') badges.push('جودة عالية');
+        return badges;
+    };
+
+    const availableBadges = getVisibleBadges();
+
+    const shouldShowField = (fieldId) => {
+        if (fieldId === 'texture' || fieldId === 'colors') {
+            return marketType === 'makeup' || marketType === 'beauty'; // Supporting both naming conventions
+        }
+        return true; // Fields 1-6 and 9 are handled separately or always shown
+    };
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -115,6 +137,13 @@ const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
         const isEdit = !!itemToEdit;
         let payload = {};
 
+        const attributes = shouldShowField('colors') ? (formData.colors || []).map(color => ({
+            key: 'color',
+            value: color,
+            label: color,
+            is_available: true
+        })) : [];
+
         if (isEdit) {
             // Edit Payload per V4.3 Spec (Safe Merge)
             payload = {
@@ -123,12 +152,7 @@ const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
                 pricing: { price: parseInt(formData.price || 0) || 0 },
                 category: categoryMap[formData.category] || { id: 'generic', label_ar: formData.category, parent_id: 'root' },
                 inventory: { unit_type: unitMap[formData.unit] || 'piece' },
-                attributes: (formData.colors || []).map(color => ({
-                    key: 'color',
-                    value: color,
-                    label: color,
-                    is_available: true
-                })),
+                attributes,
                 tags: formData.selectedBadges || []
             };
             if (formData.image) payload.image_urls = [formData.image];
@@ -146,12 +170,7 @@ const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
                     stock_quantity: 100, // Default for new
                     unit_type: unitMap[formData.unit] || 'piece'
                 },
-                attributes: (formData.colors || []).map(color => ({
-                    key: 'color',
-                    value: color,
-                    label: color,
-                    is_available: true
-                })),
+                attributes,
                 brand: 'Toto Local',
                 tags: formData.selectedBadges || [],
                 is_custom: false
@@ -356,74 +375,76 @@ const AddItemModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
                             ></textarea>
                         </div>
 
-                        {/* New Variant Fields (Texture & Colors) */}
-                        <div className="pt-4 border-t border-neutral-50 space-y-6">
-                            <h3 className="text-base font-bold text-neutral-900">خيارات المنتج (للجمال)</h3>
+                        {/* Dynamic Variant Fields (Texture & Colors) - Only for Beauty/Makeup */}
+                        {shouldShowField('texture') && (
+                            <div className="pt-4 border-t border-neutral-50 space-y-6">
+                                <h3 className="text-base font-bold text-neutral-900">خيارات المنتج (للجمال)</h3>
 
-                            {/* Texture Selection */}
-                            <div>
-                                <label className="block text-sm font-medium text-neutral-700 mb-3 truncate">اختاري القوام</label>
-                                <div className="flex p-1 bg-neutral-100 rounded-2xl w-fit">
-                                    {['مات', 'شيمر'].map((t) => (
-                                        <button
-                                            key={t}
-                                            type="button"
-                                            onClick={() => setFormData({ ...formData, texture: t })}
-                                            className={clsx(
-                                                "px-8 py-2.5 rounded-xl text-sm font-bold transition-all",
-                                                formData.texture === t
-                                                    ? "bg-white text-primary-600 shadow-sm"
-                                                    : "text-neutral-400 hover:text-neutral-600"
-                                            )}
-                                        >
-                                            {t === 'مات' ? 'مات' : 'شيمر/لامع'}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Color Swatch Picker */}
-                            <div>
-                                <label className="block text-sm font-medium text-neutral-700 mb-3 truncate">اللون المناسب</label>
-                                <div className="flex flex-wrap gap-3 items-center">
-                                    {formData.colors?.map((color, idx) => (
-                                        <div key={idx} className="relative group">
-                                            <div
-                                                className="w-10 h-10 rounded-full border-2 border-white shadow-md cursor-pointer transform transition-transform group-hover:scale-110"
-                                                style={{ backgroundColor: color }}
-                                                title={color}
-                                            />
+                                {/* Texture Selection */}
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 mb-3 truncate">اختاري القوام</label>
+                                    <div className="flex p-1 bg-neutral-100 rounded-2xl w-fit">
+                                        {['مات', 'شيمر'].map((t) => (
                                             <button
+                                                key={t}
                                                 type="button"
-                                                onClick={() => setFormData({ ...formData, colors: formData.colors.filter((_, i) => i !== idx) })}
-                                                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center scale-0 group-hover:scale-100 transition-transform shadow-sm"
+                                                onClick={() => setFormData({ ...formData, texture: t })}
+                                                className={clsx(
+                                                    "px-8 py-2.5 rounded-xl text-sm font-bold transition-all",
+                                                    formData.texture === t
+                                                        ? "bg-white text-primary-600 shadow-sm"
+                                                        : "text-neutral-400 hover:text-neutral-600"
+                                                )}
                                             >
-                                                <X className="w-3 h-3" />
+                                                {t === 'مات' ? 'مات' : 'شيمر/لامع'}
                                             </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Color Swatch Picker */}
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 mb-3 truncate">اللون المناسب</label>
+                                    <div className="flex flex-wrap gap-3 items-center">
+                                        {formData.colors?.map((color, idx) => (
+                                            <div key={idx} className="relative group">
+                                                <div
+                                                    className="w-10 h-10 rounded-full border-2 border-white shadow-md cursor-pointer transform transition-transform group-hover:scale-110"
+                                                    style={{ backgroundColor: color }}
+                                                    title={color}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, colors: formData.colors.filter((_, i) => i !== idx) })}
+                                                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center scale-0 group-hover:scale-100 transition-transform shadow-sm"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <div className="relative">
+                                            <input
+                                                type="color"
+                                                id="colorPicker"
+                                                className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                                                onChange={(e) => {
+                                                    const newColor = e.target.value;
+                                                    if (newColor && !formData.colors?.includes(newColor)) {
+                                                        setFormData({ ...formData, colors: [...(formData.colors || []), newColor] });
+                                                    }
+                                                }}
+                                            />
+                                            <label
+                                                htmlFor="colorPicker"
+                                                className="w-10 h-10 rounded-full border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-300 hover:text-primary-500 hover:border-primary-500 transition-all hover:scale-110 cursor-pointer bg-neutral-50"
+                                            >
+                                                <Plus className="w-5 h-5" />
+                                            </label>
                                         </div>
-                                    ))}
-                                    <div className="relative">
-                                        <input
-                                            type="color"
-                                            id="colorPicker"
-                                            className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-                                            onChange={(e) => {
-                                                const newColor = e.target.value;
-                                                if (newColor && !formData.colors?.includes(newColor)) {
-                                                    setFormData({ ...formData, colors: [...(formData.colors || []), newColor] });
-                                                }
-                                            }}
-                                        />
-                                        <label
-                                            htmlFor="colorPicker"
-                                            className="w-10 h-10 rounded-full border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-300 hover:text-primary-500 hover:border-primary-500 transition-all hover:scale-110 cursor-pointer bg-neutral-50"
-                                        >
-                                            <Plus className="w-5 h-5" />
-                                        </label>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Product Features Badges */}
                         <div className="pt-4 border-t border-neutral-50 space-y-4">
