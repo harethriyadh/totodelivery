@@ -59,6 +59,8 @@ const DriverHome = () => {
     const distanceToTarget = useMemo(() => {
         if (!activeOrder || !position) return null;
         const target = step === 'PICKUP' ? activeOrder.pickupPos : activeOrder.deliveryPos;
+        // Safety check: if target is missing, return null instead of crashing
+        if (!target || !Array.isArray(target) || target.length < 2) return null;
         return calcDist(position.lat, position.lng, target[0], target[1]);
     }, [activeOrder, step, position]);
 
@@ -99,16 +101,26 @@ const DriverHome = () => {
                 const response = await apiFetch('/orders/active');
                 if (response.ok) {
                     const data = await response.json();
-                    // Process backend response, e.g. mapping coordinates, calculating distance
-                    // Mocking mapping temporarily to display properly if missing from backend:
                     const orderArray = data.data || data.orders || (Array.isArray(data) ? data : []);
-                    const processed = orderArray.map(o => ({
-                        ...o,
-                        id: o._id || o.id,
-                        storeName: o.market_name || 'Market',
-                        pickupAddress: o.snapshots?.pickup_loc?.address || 'Pickup Point',
-                        earnings: o.payment?.delivery_fee || '0.00'
-                    }));
+
+                    const processed = orderArray.map(o => {
+                        // Extract coordinates safely from backend Point structure (lng, lat) -> (lat, lng)
+                        const pickupCoords = o.origin_location?.coordinates || o.location?.coordinates || [44.361, 33.315];
+                        const deliveryCoords = o.destination_location?.coordinates || [44.365, 33.319];
+
+                        return {
+                            ...o,
+                            id: o._id || o.id,
+                            storeName: o.market_name || (o.snapshots?.pickup_loc?.name) || 'Market',
+                            pickupAddress: o.snapshots?.pickup_loc?.address || 'Pickup Point',
+                            deliveryAddress: o.snapshots?.delivery_loc?.address || 'Customer Address',
+                            customerName: o.customer_name || 'Customer',
+                            earnings: o.payment?.delivery_fee || '0.00',
+                            pickupPos: [pickupCoords[1], pickupCoords[0]], // Swap lng/lat to lat/lng
+                            deliveryPos: [deliveryCoords[1], deliveryCoords[0]], // Swap lng/lat to lat/lng
+                            items: o.cart_items || o.items || [] // Map cart_items to items
+                        };
+                    });
                     setAvailableOrders(processed);
                 }
             } catch (err) {

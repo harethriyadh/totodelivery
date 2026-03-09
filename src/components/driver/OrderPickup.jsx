@@ -2,7 +2,8 @@ import React from 'react';
 import { Package, Check, Image as ImageIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 
-const OrderPickup = ({ items, itemsChecked, onToggleItem, proximityLocked }) => {
+const OrderPickup = ({ items = [], itemsChecked, onToggleItem, proximityLocked }) => {
+    const safeItems = Array.isArray(items) ? items : [];
     const checkedCount = Object.values(itemsChecked).filter(Boolean).length;
 
     // Mapping of mock images based on item names
@@ -39,12 +40,12 @@ const OrderPickup = ({ items, itemsChecked, onToggleItem, proximityLocked }) => 
                 </div>
                 <div className="bg-primary-50 px-4 py-2 rounded-xl border border-primary-100 flex flex-col items-center shadow-sm">
                     <span className="text-[10px] font-black text-primary-600 uppercase tracking-tight">تم التأكيد</span>
-                    <span className="text-[16px] font-black text-primary-700 leading-none">{checkedCount} / {items.length}</span>
+                    <span className="text-[16px] font-black text-primary-700 leading-none">{checkedCount} / {safeItems.length}</span>
                 </div>
             </div>
 
             <div className="space-y-3">
-                {items.map((item) => {
+                {safeItems.map((item) => {
                     const isChecked = itemsChecked[item.id];
                     const itemImage = getItemImage(item.name);
 

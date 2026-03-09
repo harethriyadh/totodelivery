@@ -15,7 +15,8 @@ const ActiveDeliveryCard = ({
 }) => {
     const isPickup = step === 'PICKUP';
     const checkedCount = Object.values(itemsChecked).filter(Boolean).length;
-    const allChecked = checkedCount === order.items.length;
+    const itemsList = Array.isArray(order?.items) ? order.items : [];
+    const allChecked = checkedCount === itemsList.length;
 
     // Formatting distance string
     const distanceString = distanceToTarget !== null
